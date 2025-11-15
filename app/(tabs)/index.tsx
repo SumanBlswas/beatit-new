@@ -4,6 +4,9 @@ import {
   usePlayer,
 } from "@/context/PlayerContext";
 import { ApiArtist, ApiImage, ApiSong, BioObject } from "@/services/apiTypes";
+import * as downloadService from "@/services/downloadService";
+import { useNetworkStatus } from "@/services/networkService";
+import { on as eventOn } from '@/utils/eventBus';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -15,7 +18,7 @@ import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Accelerometer } from "expo-sensors";
 import { StatusBar } from "expo-status-bar";
 import React, {
@@ -35,11 +38,13 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   SectionList,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Vibration,
   View,
 } from "react-native";
@@ -66,7 +71,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import SLiquidLoading from "../../components/SLiquidLoading";
 import { sanitizeSongTitle } from "../utils/sanitizeSongTitle";
 // 1. Import DraggableFlatList
+import { DownloadProgressModal } from "@/components/DownloadProgressModal";
 import FloatingNotification from "@/components/FloatingNotification";
+import { HeaderAccountChip } from "@/components/HeaderAccountChip";
 import NotificationCardPage from "@/components/NotificationCardPage";
 import { VoiceSearch } from "@/components/VoiceSearch";
 import DraggableFlatList from "react-native-draggable-flatlist";
@@ -715,6 +722,7 @@ const LibraryModal = ({
   onClose,
   styles,
   colors,
+  theme,
   userPlaylists,
   favorites,
   selectedPlaylist,
@@ -834,6 +842,13 @@ const LibraryModal = ({
                 <TouchableOpacity
                   style={styles.libraryPlaylistItem}
                   onPress={() => onPlaylistSelect(item)}
+                  onLongPress={() => {
+                    setDeleteType("playlist");
+                    setDeletePlaylistId(item.id);
+                    setItemToDelete(item);
+                    setDeleteModalVisible(true);
+                  }}
+                  delayLongPress={1000}
                 >
                   <FontAwesome
                     name="music"
@@ -977,62 +992,157 @@ const LibraryModal = ({
         onRequestClose={() => setIsCreateModalVisible(false)}
       >
         <View
-          style={[
-            styles.settingsBackdrop,
-            { justifyContent: "center", alignItems: "center" },
-          ]}
+          style={{
+            flex: 1,
+            backgroundColor: theme === "dark" ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.6)",
+            justifyContent: "center",
+            alignItems: "center",
+            paddingHorizontal: 20,
+          }}
         >
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => !isCreating && setIsCreateModalVisible(false)}
+          />
           <View
-            style={[styles.settingsContainer, { width: "90%", maxWidth: 400 }]}
+            style={{
+              width: "100%",
+              maxWidth: 400,
+              backgroundColor: theme === "dark" ? "#1F2937" : "#fff",
+              borderRadius: 24,
+              padding: 28,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.3,
+              shadowRadius: 24,
+              elevation: 12,
+            }}
           >
-            <Text style={styles.settingsTitle}>Create Playlist</Text>
+            {/* Icon */}
+            <View
+              style={{
+                backgroundColor: theme === "dark" ? "rgba(59, 130, 246, 0.15)" : "#F0F9FF",
+                borderRadius: 50,
+                padding: 18,
+                alignSelf: "center",
+                marginBottom: 20,
+              }}
+            >
+              <FontAwesome name="music" size={36} color="#3B82F6" />
+            </View>
+
+            {/* Title */}
+            <Text
+              style={{
+                fontSize: 24,
+                fontWeight: "bold",
+                color: theme === "dark" ? "#F9FAFB" : "#1F2937",
+                textAlign: "center",
+                marginBottom: 8,
+              }}
+            >
+              Create Playlist
+            </Text>
+
+            {/* Subtitle */}
+            <Text
+              style={{
+                fontSize: 14,
+                color: theme === "dark" ? "#9CA3AF" : "#6B7280",
+                textAlign: "center",
+                marginBottom: 24,
+              }}
+            >
+              Give your playlist a name
+            </Text>
+
+            {/* Input */}
             <TextInput
-              style={[
-                styles.searchInputField,
-                {
-                  marginBottom: 20,
-                  backgroundColor: colors.card,
-                  borderRadius: 8,
-                  padding: 12,
-                  borderWidth: 1,
-                  borderColor: colors.primary,
-                  color: colors.text,
-                  fontSize: 18,
-                },
-              ]}
-              placeholder="Enter playlist name"
-              placeholderTextColor={colors.placeholder}
+              style={{
+                backgroundColor: theme === "dark" ? "#374151" : "#F9FAFB",
+                borderRadius: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                fontSize: 16,
+                color: theme === "dark" ? "#F9FAFB" : "#1F2937",
+                borderWidth: 2,
+                borderColor: newPlaylistName.trim().length > 0 ? "#3B82F6" : (theme === "dark" ? "#4B5563" : "#E5E7EB"),
+                marginBottom: 24,
+              }}
+              placeholder="My Awesome Playlist"
+              placeholderTextColor={theme === "dark" ? "#6B7280" : "#9CA3AF"}
               value={newPlaylistName}
               onChangeText={setNewPlaylistName}
               autoFocus
               editable={!isCreating}
               onSubmitEditing={handleCreateModalSubmit}
               returnKeyType="done"
+              maxLength={50}
             />
-            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+
+            {/* Character count */}
+            <Text
+              style={{
+                fontSize: 12,
+                color: theme === "dark" ? "#6B7280" : "#9CA3AF",
+                textAlign: "right",
+                marginTop: -20,
+                marginBottom: 20,
+              }}
+            >
+              {newPlaylistName.length}/50
+            </Text>
+
+            {/* Buttons */}
+            <View style={{ flexDirection: "row", gap: 12 }}>
               <TouchableOpacity
-                style={[
-                  styles.settingsCloseButton,
-                  { marginRight: 10, backgroundColor: colors.separator },
-                ]}
+                style={{
+                  flex: 1,
+                  backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                  paddingVertical: 14,
+                  borderRadius: 12,
+                  alignItems: "center",
+                }}
                 onPress={() => setIsCreateModalVisible(false)}
                 disabled={isCreating}
               >
                 <Text
-                  style={[
-                    styles.settingsCloseButtonText,
-                    { color: colors.textSecondary },
-                  ]}
+                  style={{
+                    color: theme === "dark" ? "#D1D5DB" : "#6B7280",
+                    fontWeight: "600",
+                    fontSize: 16,
+                  }}
                 >
                   Cancel
                 </Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.settingsCloseButton}
+                style={{
+                  flex: 1,
+                  backgroundColor: newPlaylistName.trim().length === 0 || isCreating ? (theme === "dark" ? "#1E3A5F" : "#93C5FD") : "#3B82F6",
+                  paddingVertical: 14,
+                  paddingHorizontal: 8,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  shadowColor: "#3B82F6",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: newPlaylistName.trim().length === 0 || isCreating ? 0 : 0.3,
+                  shadowRadius: 8,
+                  elevation: newPlaylistName.trim().length === 0 || isCreating ? 0 : 4,
+                }}
                 onPress={handleCreateModalSubmit}
                 disabled={isCreating || newPlaylistName.trim().length === 0}
               >
-                <Text style={styles.settingsCloseButtonText}>
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontWeight: "700",
+                    fontSize: 16,
+                  }}
+                  numberOfLines={1}
+                >
                   {isCreating ? "Creating..." : "Create"}
                 </Text>
               </TouchableOpacity>
@@ -1047,6 +1157,7 @@ const HomeScreen: React.FC = () => {
   const currentSong = useCurrentSong();
   const isPlaying = useIsPlaying();
   const playerActions = usePlayer();
+  const { isOnline } = useNetworkStatus(); // FIX: Destructure isOnline from the object
   const [homePageModules, setHomePageModules] = useState<any>(null);
   const [recommendedSongs, setRecommendedSongs] = useState<ApiSong[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1058,6 +1169,11 @@ const HomeScreen: React.FC = () => {
   const [selectedArtist, setSelectedArtist] = useState<ApiArtistDetail | null>(
     null
   );
+  
+  // Album/Playlist download progress state
+  const [isDownloadingAlbum, setIsDownloadingAlbum] = useState(false);
+  const [albumDownloadProgress, setAlbumDownloadProgress] = useState({ current: 0, total: 0, songName: "" });
+  
   type ViewType = "main" | "playlist" | "album" | "artist";
   const [selectedView, setSelectedView] = useState<ViewType>("main");
   const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
@@ -1072,6 +1188,9 @@ const HomeScreen: React.FC = () => {
   const [isAddToPlaylistModalVisible, setIsAddToPlaylistModalVisible] =
     useState(false);
   const [songToAdd, setSongToAdd] = useState<ApiSong | null>(null);
+  const [isCreatePlaylistFromSongModalVisible, setIsCreatePlaylistFromSongModalVisible] = useState(false);
+  const [newPlaylistNameForModal, setNewPlaylistNameForModal] = useState("");
+  const [isCreatingFromModal, setIsCreatingFromModal] = useState(false);
   const [isLibraryModalVisible, setIsLibraryModalVisible] = useState(false);
 
   const [theme, setTheme] = useState<Theme>("dark");
@@ -1108,6 +1227,13 @@ const HomeScreen: React.FC = () => {
 
   const rippleX = useSharedValue(0);
   const rippleY = useSharedValue(0);
+  useEffect(() => {
+    // Listen for favorites updates from other parts of the app (e.g., PlayerContext)
+    const unsubscribe = eventOn('favoritesUpdated', (payload: { newFavorites: ApiSong[]; action?: string; songId?: string }) => {
+      setFavorites((payload && payload.newFavorites) || []);
+    });
+    return () => unsubscribe && unsubscribe();
+  }, []);
   const rippleProgress = useSharedValue(0);
   const waveProgress = useSharedValue(0);
   const waveOriginX = useSharedValue(0);
@@ -1118,7 +1244,7 @@ const HomeScreen: React.FC = () => {
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<ApiSong | null>(null);
-  const [deleteType, setDeleteType] = useState<"favorite" | "playlistSong">(
+  const [deleteType, setDeleteType] = useState<"favorite" | "playlistSong" | "playlist">(
     "favorite"
   );
   const [deletePlaylistId, setDeletePlaylistId] = useState<string | null>(null);
@@ -1126,6 +1252,11 @@ const HomeScreen: React.FC = () => {
   const [themeMode, setThemeMode] = useState<"manual" | "auto" | "reverse">(
     "auto"
   );
+  const [downloadProgress, setDownloadProgress] = useState<{
+    [songId: string]: number;
+  }>({});
+  const [downloadedSongs, setDownloadedSongs] = useState<string[]>([]);
+
   const ambientEnv = useAmbientTheme(
     themeMode === "auto" || themeMode === "reverse"
   );
@@ -1266,7 +1397,12 @@ const HomeScreen: React.FC = () => {
         const libraryData = JSON.parse(fileContent);
         if (libraryData.email === email) {
           setFavorites(libraryData.favorites || []);
-          setUserPlaylists(libraryData.playlists || []);
+          // Migrate playlists to use placeholder marker for empty images
+          const migratedPlaylists = (libraryData.playlists || []).map((playlist: Playlist) => ({
+            ...playlist,
+            image: playlist.image || "__PLAYLIST_PLACEHOLDER__"
+          }));
+          setUserPlaylists(migratedPlaylists);
           setWatchlist(libraryData.watchlist || []);
         }
       }
@@ -1284,7 +1420,20 @@ const HomeScreen: React.FC = () => {
     const savedPlaylists = await AsyncStorage.getItem(
       STORAGE_KEYS.USER_PLAYLISTS
     );
-    if (savedPlaylists) setUserPlaylists(JSON.parse(savedPlaylists));
+    if (savedPlaylists) {
+      // Migrate playlists to use placeholder marker for empty images
+      const playlists = JSON.parse(savedPlaylists);
+      const migratedPlaylists = playlists.map((playlist: Playlist) => ({
+        ...playlist,
+        image: playlist.image || "__PLAYLIST_PLACEHOLDER__"
+      }));
+      setUserPlaylists(migratedPlaylists);
+      // Save the migrated playlists back to storage
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.USER_PLAYLISTS,
+        JSON.stringify(migratedPlaylists)
+      );
+    }
 
     const savedWatchlist = await AsyncStorage.getItem(
       STORAGE_KEYS.USER_WATCHLIST
@@ -1402,6 +1551,17 @@ const HomeScreen: React.FC = () => {
     }
   }, [favorites, userPlaylists, watchlist, userEmail]);
 
+  // Load downloaded songs on mount
+  useFocusEffect(
+    useCallback(() => {
+      const loadDownloadedSongs = async () => {
+        const downloaded = await downloadService.getDownloadedSongs();
+        setDownloadedSongs(downloaded.map((s) => s.id));
+      };
+      loadDownloadedSongs();
+    }, [])
+  );
+
   // Handle keep awake effect
   useEffect(() => {
     if (isKeepAwakeEnabled) {
@@ -1426,11 +1586,48 @@ const HomeScreen: React.FC = () => {
     );
   };
 
+  const handleDownloadSong = async (song: ApiSong) => {
+    if (downloadedSongs.includes(song.id)) {
+      Alert.alert("Already Downloaded", "This song is already downloaded.");
+      return;
+    }
+
+    try {
+      setDownloadProgress((prev) => ({ ...prev, [song.id]: 0 }));
+      
+      await downloadService.downloadSong(
+        song,
+        "320kbps",
+        (progress) => {
+          setDownloadProgress((prev) => ({ ...prev, [song.id]: progress }));
+        }
+      );
+
+      setDownloadedSongs((prev) => [...prev, song.id]);
+      setDownloadProgress((prev) => {
+        const newProgress = { ...prev };
+        delete newProgress[song.id];
+        return newProgress;
+      });
+
+      // Silent completion - no alert
+    } catch (error) {
+      setDownloadProgress((prev) => {
+        const newProgress = { ...prev };
+        delete newProgress[song.id];
+        return newProgress;
+      });
+      Alert.alert("Error", "Failed to download song. Please try again.");
+      console.error("Download error:", error);
+    }
+  };
+
   const createPlaylist = async (
     playlistName: string,
     initialSong?: ApiSong
   ) => {
-    let playlistImage = "https://via.placeholder.com/150/121212/FFFFFF/?text=P";
+    // Use a placeholder marker that getImageUrl will recognize
+    let playlistImage = "__PLAYLIST_PLACEHOLDER__";
     if (initialSong && initialSong.image) {
       if (typeof initialSong.image === "string") {
         playlistImage = initialSong.image;
@@ -1438,7 +1635,7 @@ const HomeScreen: React.FC = () => {
         Array.isArray(initialSong.image) &&
         initialSong.image.length > 0
       ) {
-        playlistImage = initialSong.image[0].link || playlistImage;
+        playlistImage = initialSong.image[0].link || "__PLAYLIST_PLACEHOLDER__";
       }
     }
     const newPlaylist: Playlist = {
@@ -1485,17 +1682,23 @@ const HomeScreen: React.FC = () => {
 
   const handleCreatePlaylistFromModal = () => {
     if (!songToAdd) return;
-    Alert.prompt(
-      "Create Playlist",
-      "Enter a name for your new playlist:",
-      async (text) => {
-        if (text && text.trim().length > 0) {
-          await createPlaylist(text.trim(), songToAdd);
-          setIsAddToPlaylistModalVisible(false);
-          setSongToAdd(null);
-        }
-      }
-    );
+    // Close add to playlist modal and open create playlist modal
+    setIsAddToPlaylistModalVisible(false);
+    // Small delay to allow modal to close before opening new one
+    setTimeout(() => {
+      setNewPlaylistNameForModal("");
+      setIsCreatePlaylistFromSongModalVisible(true);
+    }, 300);
+  };
+
+  const handleCreatePlaylistFromSongModalSubmit = async () => {
+    if (newPlaylistNameForModal.trim().length > 0 && songToAdd) {
+      setIsCreatingFromModal(true);
+      await createPlaylist(newPlaylistNameForModal.trim(), songToAdd);
+      setIsCreatingFromModal(false);
+      setIsCreatePlaylistFromSongModalVisible(false);
+      setSongToAdd(null);
+    }
   };
 
   const handleCloseTutorial = async () => {
@@ -1772,15 +1975,25 @@ const HomeScreen: React.FC = () => {
   const getImageUrl = useCallback(
     (
       imageInput: ApiImage[] | string | undefined,
-      quality: string = "150x150"
+      quality: string = "150x150",
+      isPlaylist: boolean = false
     ): string => {
-      const placeholder =
-        "https://via.placeholder.com/150/121212/FFFFFF/?text=S";
+      // Use local playlist placeholder for playlists, generic placeholder for songs
+      const playlistPlaceholder = Image.resolveAssetSource(require('@/assets/images/playlist.png')).uri;
+      const songPlaceholder = "https://via.placeholder.com/150/121212/FFFFFF/?text=S";
+      const placeholder = isPlaylist ? playlistPlaceholder : songPlaceholder;
+      
       if (
         !imageInput ||
         (typeof imageInput === "string" && imageInput.trim() === "")
       )
         return placeholder;
+      
+      // Handle special playlist placeholder marker
+      if (imageInput === "__PLAYLIST_PLACEHOLDER__") {
+        return playlistPlaceholder;
+      }
+      
       if (typeof imageInput === "string") return imageInput;
       if (Array.isArray(imageInput) && imageInput.length > 0) {
         const qualityImage = imageInput.find(
@@ -1943,6 +2156,13 @@ const HomeScreen: React.FC = () => {
 
   const fetchData = useCallback(
     async (language: string) => {
+      // Skip fetching if offline - reading isOnline without dependency to prevent infinite loops
+      if (!isOnline) {
+        console.log("Skipping fetchData - device is offline");
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
       try {
@@ -2043,6 +2263,12 @@ const HomeScreen: React.FC = () => {
         );
         setRecommendedSongs(finalSongs);
       } catch (err) {
+        // Silently ignore network errors when offline
+        if (err instanceof TypeError && err.message === "Network request failed") {
+          console.log("Network error detected - device appears to be offline");
+          setIsLoading(false);
+          return;
+        }
         console.error("❌ Error in fetchData:", err);
         setError(err instanceof Error ? err.message : "Failed to load data");
         setHomePageModules(null);
@@ -2051,7 +2277,7 @@ const HomeScreen: React.FC = () => {
         setIsLoading(false);
       }
     },
-    [processRawSong]
+    [processRawSong] // Removed isOnline to prevent infinite re-renders
   );
 
   const loadSavedData = useCallback(
@@ -2140,20 +2366,28 @@ const HomeScreen: React.FC = () => {
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
     const isActive = selectedView === "main" && !expandedHomepageSection;
+    const height = isActive
+      ? interpolate(
+          scrollY.value,
+          [0, HEADER_SCROLL_DISTANCE],
+          [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+          Extrapolate.CLAMP
+        )
+      : HEADER_MIN_HEIGHT;
+    
+    // Fade out the entire header when scrolling
+    const opacity = isActive
+      ? interpolate(
+          scrollY.value,
+          [0, HEADER_SCROLL_DISTANCE],
+          [1, 0],
+          Extrapolate.CLAMP
+        )
+      : (selectedView === "main" ? 1 : 0);
+    
     return {
-      height: isActive
-        ? interpolate(
-            scrollY.value,
-            [0, HEADER_SCROLL_DISTANCE],
-            [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-            Extrapolate.CLAMP
-          )
-        : HEADER_MIN_HEIGHT,
-      opacity:
-        (selectedView === "main" && !expandedHomepageSection) ||
-        selectedView !== "main"
-          ? 1
-          : 0,
+      height,
+      opacity,
       zIndex: selectedView === "main" && !expandedHomepageSection ? 10 : 0,
     };
   });
@@ -2198,6 +2432,26 @@ const HomeScreen: React.FC = () => {
       ],
     };
   });
+
+  // CD rotation animation for mini player
+  const cdRotation = useSharedValue(0);
+  
+  useEffect(() => {
+    if (isPlaying) {
+      cdRotation.value = 0;
+      cdRotation.value = withRepeat(
+        withTiming(360, { duration: 3000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    } else {
+      cdRotation.value = withTiming(0, { duration: 300 });
+    }
+  }, [isPlaying]);
+
+  const cdRotationStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${cdRotation.value}deg` }],
+  }));
 
   const rippleStyle = useAnimatedStyle(() => {
     const scale = rippleProgress.value * 10;
@@ -2455,6 +2709,45 @@ const HomeScreen: React.FC = () => {
       }
     },
     [processRawSong]
+  );
+
+  const handleDownloadAlbum = useCallback(
+    async (songs: ApiSong[], albumName: string, collectionType: 'album' | 'playlist', collectionId?: string) => {
+      if (!songs || songs.length === 0) {
+        Alert.alert("Error", "No songs to download");
+        return;
+      }
+
+      setIsDownloadingAlbum(true);
+      setAlbumDownloadProgress({ current: 0, total: songs.length, songName: "" });
+
+      try {
+        await downloadService.downloadAlbum(
+          songs,
+          (current, total, songName) => {
+            setAlbumDownloadProgress({ current, total, songName });
+          },
+          { collectionType, collectionName: albumName, collectionId }
+        );
+
+        setIsDownloadingAlbum(false);
+
+        // Refresh downloaded songs list
+        const downloaded = await downloadService.getDownloadedSongs();
+        setDownloadedSongs(downloaded.map((s) => s.id));
+
+        // Silent completion - no alert shown
+      } catch (error) {
+        setIsDownloadingAlbum(false);
+        console.error("Error downloading album:", error);
+        Alert.alert(
+          "Error",
+          "An error occurred while downloading the album",
+          [{ text: "OK" }]
+        );
+      }
+    },
+    []
   );
 
   const handleAlbumPress = useCallback(
@@ -2921,7 +3214,7 @@ const HomeScreen: React.FC = () => {
       const commonPress = () => handlePlaylistPress(item);
       const imageQuality =
         isExpanded && viewMode === "list" ? "150x150" : "500x500";
-      const imageUri = getImageUrl(item.image, imageQuality);
+      const imageUri = getImageUrl(item.image, imageQuality, true); // true = isPlaylist
 
       if (isExpanded && viewMode === "list") {
         return (
@@ -3436,7 +3729,7 @@ const HomeScreen: React.FC = () => {
         >
           <View style={styles.albumHeaderContent}>
             <Image
-              source={{ uri: getImageUrl(selectedPlaylist?.image, "500x500") }}
+              source={{ uri: getImageUrl(selectedPlaylist?.image, "500x500", true) }}
               style={styles.albumDetailImage}
             />
             <View style={styles.albumDetailInfo}>
@@ -3477,6 +3770,32 @@ const HomeScreen: React.FC = () => {
             >
               <FontAwesome name="play" size={28} color="#000" />
             </TouchableOpacity>
+            
+            {/* Download Playlist Button */}
+            {(() => {
+              const allDownloaded = selectedPlaylist?.songs?.every(song => downloadedSongs.includes(song.id)) || false;
+              const hasAnySongs = selectedPlaylist?.songs && selectedPlaylist.songs.length > 0;
+              
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.downloadAlbumButton,
+                    allDownloaded && styles.downloadedAlbumButton
+                  ]}
+                  onPress={() =>
+                    !allDownloaded && selectedPlaylist?.songs &&
+                    handleDownloadAlbum(selectedPlaylist.songs, selectedPlaylist.name, 'playlist', selectedPlaylist.id)
+                  }
+                  disabled={!hasAnySongs || allDownloaded}
+                >
+                  <FontAwesome 
+                    name={allDownloaded ? "check-circle" : "download"} 
+                    size={22} 
+                    color="#fff" 
+                  />
+                </TouchableOpacity>
+              );
+            })()}
           </View>
         </View>
       );
@@ -3534,6 +3853,32 @@ const HomeScreen: React.FC = () => {
             >
               <FontAwesome name="play" size={28} color="#000" />
             </TouchableOpacity>
+            
+            {/* Download Album Button */}
+            {(() => {
+              const allDownloaded = selectedAlbum?.songs?.every(song => downloadedSongs.includes(song.id)) || false;
+              const hasAnySongs = selectedAlbum?.songs && selectedAlbum.songs.length > 0;
+              
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.downloadAlbumButton,
+                    allDownloaded && styles.downloadedAlbumButton
+                  ]}
+                  onPress={() =>
+                    !allDownloaded && selectedAlbum?.songs &&
+                    handleDownloadAlbum(selectedAlbum.songs, selectedAlbum.name, 'album', selectedAlbum.id)
+                  }
+                  disabled={!hasAnySongs || allDownloaded}
+                >
+                  <FontAwesome 
+                    name={allDownloaded ? "check-circle" : "download"} 
+                    size={22} 
+                    color="#fff" 
+                  />
+                </TouchableOpacity>
+              );
+            })()}
           </View>
         </View>
       );
@@ -3723,6 +4068,25 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
           <TouchableOpacity
+            onPress={() => handleDownloadSong(item)}
+            style={{ padding: 5, marginRight: 5 }}
+            activeOpacity={0.7}
+          >
+            {downloadProgress[item.id] !== undefined ? (
+              <View style={{ position: "relative", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 10, color: colors.primary }}>
+                  {Math.round(downloadProgress[item.id])}%
+                </Text>
+              </View>
+            ) : (
+              <FontAwesome
+                name={downloadedSongs.includes(item.id) ? "check-circle" : "download"}
+                size={20}
+                color={downloadedSongs.includes(item.id) ? colors.primary : colors.textSecondary}
+              />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => openAddToPlaylistModal(item)}
             style={{ padding: 10 }}
           >
@@ -3758,6 +4122,9 @@ const HomeScreen: React.FC = () => {
       colors.textSecondary,
       openAddToPlaylistModal,
       toggleFavorite,
+      downloadProgress,
+      downloadedSongs,
+      handleDownloadSong,
     ]
   );
 
@@ -3930,19 +4297,30 @@ const HomeScreen: React.FC = () => {
     if (!isSettingsVisible && settingsAnim.value === 0) return null;
 
     return (
-      <Animated.View
-        style={[StyleSheet.absoluteFill, styles.settingsBackdrop, overlayStyle]}
-        pointerEvents={isSettingsVisible ? "auto" : "none"}
+      <Modal
+        visible={isSettingsVisible}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setIsSettingsVisible(false)}
+        statusBarTranslucent={true}
       >
-        <Pressable
-          style={StyleSheet.absoluteFill}
-          onPress={() => setIsSettingsVisible(false)}
-        />
-        <Animated.View style={[styles.settingsContainer, containerStyle]}>
-          <View style={styles.settingsHandlebarContainer}>
-            <View style={styles.settingsHandlebar} />
-          </View>
-          <Text style={styles.settingsTitle}>Settings</Text>
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill, 
+            styles.settingsBackdrop, 
+            overlayStyle,
+          ]}
+          pointerEvents="box-none"
+        >
+          <TouchableWithoutFeedback onPress={() => setIsSettingsVisible(false)}>
+            <View style={StyleSheet.absoluteFill} />
+          </TouchableWithoutFeedback>
+          <Animated.View style={[styles.settingsContainer, containerStyle]}>
+            <View style={styles.settingsHandlebarContainer}>
+              <View style={styles.settingsHandlebar} />
+            </View>
+            <Text style={styles.settingsTitle}>Settings</Text>
+            <ScrollView style={styles.settingsScrollView} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
 
           <View style={styles.settingRow}>
             <Text style={styles.settingLabel}>Theme Mode</Text>
@@ -4453,8 +4831,10 @@ const HomeScreen: React.FC = () => {
           >
             <Text style={styles.settingsCloseButtonText}>Done</Text>
           </TouchableOpacity>
+          </ScrollView>
         </Animated.View>
-      </Animated.View>
+        </Animated.View>
+      </Modal>
     );
   };
 
@@ -5250,6 +5630,23 @@ const HomeScreen: React.FC = () => {
     setItemToDelete(null);
     setDeletePlaylistId(null);
   };
+
+  const handleDeletePlaylist = async (playlistId: string) => {
+    const newPlaylists = userPlaylists.filter((p) => p.id !== playlistId);
+    setUserPlaylists(newPlaylists);
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.USER_PLAYLISTS,
+      JSON.stringify(newPlaylists)
+    );
+    setDeleteModalVisible(false);
+    setItemToDelete(null);
+    setDeletePlaylistId(null);
+    // Close the playlist detail view if it's open
+    if (selectedPlaylist?.id === playlistId) {
+      setSelectedPlaylist(null);
+    }
+  };
+
   return (
     <AnimatedGestureHandlerRootView
       style={[{ flex: 1 }, animatedBackgroundStyle]}
@@ -5270,45 +5667,370 @@ const HomeScreen: React.FC = () => {
         <Modal
           visible={isAddToPlaylistModalVisible}
           transparent
-          animationType="slide"
+          animationType="fade"
           onRequestClose={() => setIsAddToPlaylistModalVisible(false)}
         >
-          <View style={styles.settingsBackdrop}>
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: theme === "dark" ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.6)",
+              justifyContent: "flex-end",
+            }}
+          >
             <Pressable
               style={StyleSheet.absoluteFill}
               onPress={() => setIsAddToPlaylistModalVisible(false)}
             />
-            <View style={styles.settingsContainer}>
-              <Text style={styles.settingsTitle}>Add to Playlist</Text>
+            <View
+              style={{
+                backgroundColor: theme === "dark" ? "#1F2937" : "#fff",
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                paddingTop: 24,
+                paddingBottom: 40,
+                paddingHorizontal: 20,
+                maxHeight: "70%",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                elevation: 12,
+              }}
+            >
+              {/* Header */}
+              <View style={{ marginBottom: 20 }}>
+                <Text
+                  style={{
+                    fontSize: 22,
+                    fontWeight: "bold",
+                    color: theme === "dark" ? "#F9FAFB" : "#1F2937",
+                    textAlign: "center",
+                  }}
+                >
+                  Add to Playlist
+                </Text>
+                <TouchableOpacity
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: 0,
+                    padding: 4,
+                  }}
+                  onPress={() => setIsAddToPlaylistModalVisible(false)}
+                >
+                  <FontAwesome
+                    name="close"
+                    size={24}
+                    color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Create New Playlist Button */}
               <TouchableOpacity
-                style={styles.createPlaylistModalButton}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: theme === "dark" ? "rgba(59, 130, 246, 0.15)" : "#F0F9FF",
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: theme === "dark" ? "rgba(59, 130, 246, 0.3)" : "#BFDBFE",
+                }}
                 onPress={handleCreatePlaylistFromModal}
               >
-                <FontAwesome name="plus" size={16} color={colors.primary} />
-                <Text style={styles.createPlaylistModalButtonText}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: "#3B82F6",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginRight: 12,
+                  }}
+                >
+                  <FontAwesome name="plus" size={18} color="#fff" />
+                </View>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: "600",
+                    color: "#3B82F6",
+                    flex: 1,
+                  }}
+                >
                   Create New Playlist
                 </Text>
+                <FontAwesome name="chevron-right" size={16} color="#3B82F6" />
               </TouchableOpacity>
+
+              {/* Playlists List */}
               <FlatList
                 data={userPlaylists}
                 keyExtractor={(item) => item.id}
+                style={{ flexGrow: 0 }}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={styles.playlistItemText}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                      marginBottom: 8,
+                      backgroundColor: theme === "dark" ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.02)",
+                    }}
                     onPress={() => addToPlaylist(item.id)}
                   >
-                    <Text style={{ color: colors.text }}>{item.name}</Text>
+                    <View
+                      style={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: 8,
+                        backgroundColor: theme === "dark" ? "#374151" : "#E5E7EB",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginRight: 12,
+                      }}
+                    >
+                      <FontAwesome
+                        name="music"
+                        size={20}
+                        color={theme === "dark" ? "#9CA3AF" : "#6B7280"}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontSize: 16,
+                          fontWeight: "500",
+                          color: theme === "dark" ? "#F9FAFB" : "#1F2937",
+                        }}
+                        numberOfLines={1}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: 13,
+                          color: theme === "dark" ? "#9CA3AF" : "#6B7280",
+                          marginTop: 2,
+                        }}
+                      >
+                        {item.songs?.length || 0} songs
+                      </Text>
+                    </View>
+                    <FontAwesome
+                      name="chevron-right"
+                      size={16}
+                      color={theme === "dark" ? "#6B7280" : "#9CA3AF"}
+                    />
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
-                  <Text style={styles.emptyText}>
-                    You haven&apos;t created any playlists yet.
-                  </Text>
+                  <View style={{ paddingVertical: 40, alignItems: "center" }}>
+                    <FontAwesome
+                      name="music"
+                      size={48}
+                      color={theme === "dark" ? "#4B5563" : "#D1D5DB"}
+                      style={{ marginBottom: 16 }}
+                    />
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        color: theme === "dark" ? "#9CA3AF" : "#6B7280",
+                        textAlign: "center",
+                      }}
+                    >
+                      No playlists yet
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: theme === "dark" ? "#6B7280" : "#9CA3AF",
+                        textAlign: "center",
+                        marginTop: 8,
+                      }}
+                    >
+                      Create your first playlist above
+                    </Text>
+                  </View>
                 }
               />
             </View>
           </View>
         </Modal>
+
+        {/* Create Playlist From Song Modal */}
+        <Modal
+          visible={isCreatePlaylistFromSongModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsCreatePlaylistFromSongModalVisible(false)}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: theme === "dark" ? "rgba(0, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.6)",
+              justifyContent: "center",
+              alignItems: "center",
+              paddingHorizontal: 20,
+            }}
+          >
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => !isCreatingFromModal && setIsCreatePlaylistFromSongModalVisible(false)}
+            />
+            <View
+              style={{
+                width: "100%",
+                maxWidth: 400,
+                backgroundColor: theme === "dark" ? "#1F2937" : "#fff",
+                borderRadius: 24,
+                padding: 28,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.3,
+                shadowRadius: 24,
+                elevation: 12,
+              }}
+            >
+              {/* Icon */}
+              <View
+                style={{
+                  backgroundColor: theme === "dark" ? "rgba(59, 130, 246, 0.15)" : "#F0F9FF",
+                  borderRadius: 50,
+                  padding: 18,
+                  alignSelf: "center",
+                  marginBottom: 20,
+                }}
+              >
+                <FontAwesome name="music" size={36} color="#3B82F6" />
+              </View>
+
+              {/* Title */}
+              <Text
+                style={{
+                  fontSize: 24,
+                  fontWeight: "bold",
+                  color: theme === "dark" ? "#F9FAFB" : "#1F2937",
+                  textAlign: "center",
+                  marginBottom: 8,
+                }}
+              >
+                Create Playlist
+              </Text>
+
+              {/* Subtitle */}
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: theme === "dark" ? "#9CA3AF" : "#6B7280",
+                  textAlign: "center",
+                  marginBottom: 24,
+                }}
+              >
+                Give your playlist a name
+              </Text>
+
+              {/* Input */}
+              <TextInput
+                style={{
+                  backgroundColor: theme === "dark" ? "#374151" : "#F9FAFB",
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  fontSize: 16,
+                  color: theme === "dark" ? "#F9FAFB" : "#1F2937",
+                  borderWidth: 2,
+                  borderColor: newPlaylistNameForModal.trim().length > 0 ? "#3B82F6" : (theme === "dark" ? "#4B5563" : "#E5E7EB"),
+                  marginBottom: 24,
+                }}
+                placeholder="My Awesome Playlist"
+                placeholderTextColor={theme === "dark" ? "#6B7280" : "#9CA3AF"}
+                value={newPlaylistNameForModal}
+                onChangeText={setNewPlaylistNameForModal}
+                autoFocus
+                editable={!isCreatingFromModal}
+                onSubmitEditing={handleCreatePlaylistFromSongModalSubmit}
+                returnKeyType="done"
+                maxLength={50}
+              />
+
+              {/* Character count */}
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: theme === "dark" ? "#6B7280" : "#9CA3AF",
+                  textAlign: "right",
+                  marginTop: -20,
+                  marginBottom: 20,
+                }}
+              >
+                {newPlaylistNameForModal.length}/50
+              </Text>
+
+              {/* Buttons */}
+              <View style={{ flexDirection: "row", gap: 12 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme === "dark" ? "#374151" : "#F3F4F6",
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                    alignItems: "center",
+                  }}
+                  onPress={() => setIsCreatePlaylistFromSongModalVisible(false)}
+                  disabled={isCreatingFromModal}
+                >
+                  <Text
+                    style={{
+                      color: theme === "dark" ? "#D1D5DB" : "#6B7280",
+                      fontWeight: "600",
+                      fontSize: 16,
+                    }}
+                  >
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    backgroundColor: newPlaylistNameForModal.trim().length === 0 || isCreatingFromModal ? (theme === "dark" ? "#1E3A5F" : "#93C5FD") : "#3B82F6",
+                    paddingVertical: 14,
+                    paddingHorizontal: 8,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    shadowColor: "#3B82F6",
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: newPlaylistNameForModal.trim().length === 0 || isCreatingFromModal ? 0 : 0.3,
+                    shadowRadius: 8,
+                    elevation: newPlaylistNameForModal.trim().length === 0 || isCreatingFromModal ? 0 : 4,
+                  }}
+                  onPress={handleCreatePlaylistFromSongModalSubmit}
+                  disabled={isCreatingFromModal || newPlaylistNameForModal.trim().length === 0}
+                >
+                  <Text
+                    style={{
+                      color: "#fff",
+                      fontWeight: "700",
+                      fontSize: 16,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {isCreatingFromModal ? "Creating..." : "Create"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         <TutorialOverlay
           isVisible={isTutorialVisible}
           onClose={handleCloseTutorial}
@@ -5385,16 +6107,9 @@ const HomeScreen: React.FC = () => {
             <View style={styles.headerControlsOverlay}>
               <View style={styles.headerTopControls}>
                 <View style={{ flex: 1 }} />
-                <TouchableOpacity
-                  onPress={toggleSearchOverlay}
-                  style={styles.mainHeaderSearchIcon}
-                >
-                  <FontAwesome
-                    name="search"
-                    size={22}
-                    color={colors.headerText}
-                  />
-                </TouchableOpacity>
+                <Animated.View style={headerContentAnimatedStyle}>
+                  <HeaderAccountChip />
+                </Animated.View>
               </View>
 
               <View style={styles.headerBottomControls}>
@@ -5424,6 +6139,16 @@ const HomeScreen: React.FC = () => {
                   >
                     <FontAwesome
                       name="sliders"
+                      size={20}
+                      color={colors.headerText}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.bottomLeftControlButton}
+                    onPress={() => router.push("/downloads")}
+                  >
+                    <FontAwesome
+                      name="download"
                       size={20}
                       color={colors.headerText}
                     />
@@ -5563,66 +6288,23 @@ const HomeScreen: React.FC = () => {
             style={[
               styles.miniPlayer,
               miniPlayerAnimatedStyle,
-              (selectedView !== "main" || expandedHomepageSection) &&
-                styles.miniPlayerFullWidth,
             ]}
           >
             <TouchableOpacity
               style={styles.miniPlayerContent}
               onPress={() => router.push("/player" as any)}
+              activeOpacity={0.8}
             >
-              <Image
-                source={{
-                  uri: getImageUrl(currentSong.image, "500x500"),
-                }}
-                style={styles.miniPlayerArtwork}
-              />
-              <View style={{ flex: 1, marginLeft: 10, marginRight: 10 }}>
-                <Text style={styles.miniPlayerTitle} numberOfLines={1}>
-                  {sanitizeSongTitle(currentSong.name || currentSong.title)}
-                </Text>
-                <ClickableArtistLinks
-                  artistsInput={
-                    currentSong.primaryArtists || currentSong.subtitle
-                  }
-                  onArtistPress={(artist) => {
-                    const targetViewIsArtist =
-                      selectedView === "artist" &&
-                      (typeof artist === "string"
-                        ? selectedArtist?.name === artist
-                        : selectedArtist?.id === artist.id);
-                    if (targetViewIsArtist) return;
-
-                    handleBack();
-                    setTimeout(() => handleArtistPress(artist), 50);
+              <Animated.View style={[styles.miniPlayerArtworkContainer, cdRotationStyle]}>
+                <Image
+                  source={{
+                    uri: getImageUrl(currentSong.image, "500x500"),
                   }}
-                  baseTextStyle={styles.miniPlayerArtistBase}
-                  touchableTextStyle={styles.miniPlayerArtistLink}
-                  separatorTextStyle={styles.miniPlayerArtistSeparatorText}
-                  maxArtistsToShow={1}
-                  disabled={true}
+                  style={styles.miniPlayerArtwork}
                 />
-              </View>
-              <TouchableOpacity
-                onPress={playerActions.togglePlayPause}
-                style={{ padding: 10 }}
-              >
-                <FontAwesome
-                  name={isPlaying ? "pause" : "play"}
-                  size={22}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={playerActions.nextSong}
-                style={{ padding: 10, marginLeft: 5 }}
-              >
-                <FontAwesome
-                  name="step-forward"
-                  size={20}
-                  color={colors.text}
-                />
-              </TouchableOpacity>
+                {/* CD center dot */}
+                <View style={styles.cdCenterDot} />
+              </Animated.View>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -5678,12 +6360,12 @@ const HomeScreen: React.FC = () => {
           }, 250);
         }}
       />
-      <SettingsOverlay />
       <LibraryModal
         isVisible={isLibraryModalVisible}
         onClose={() => setIsLibraryModalVisible(false)}
         styles={styles}
         colors={colors}
+        theme={theme}
         userPlaylists={userPlaylists}
         favorites={favorites}
         selectedPlaylist={selectedPlaylist}
@@ -5762,7 +6444,7 @@ const HomeScreen: React.FC = () => {
                   textAlign: "center",
                 }}
               >
-                Remove Song?
+                {deleteType === "playlist" ? "Delete Playlist?" : "Remove Song?"}
               </Text>
               <Text
                 style={{
@@ -5773,9 +6455,10 @@ const HomeScreen: React.FC = () => {
                   lineHeight: 22,
                 }}
               >
-                Are you sure you want to remove this song from{" "}
-                {deleteType === "favorite" ? "your Favorites" : "this Playlist"}
-                ? This action cannot be undone.
+                {deleteType === "playlist" 
+                  ? "Are you sure you want to delete this playlist? All songs will be removed. This action cannot be undone."
+                  : `Are you sure you want to remove this song from ${deleteType === "favorite" ? "your Favorites" : "this Playlist"}? This action cannot be undone.`
+                }
               </Text>
               <View
                 style={{
@@ -5823,6 +6506,8 @@ const HomeScreen: React.FC = () => {
                       itemToDelete
                     )
                       handleDeletePlaylistSong(deletePlaylistId, itemToDelete);
+                    else if (deleteType === "playlist" && deletePlaylistId)
+                      handleDeletePlaylist(deletePlaylistId);
                   }}
                 >
                   <Text
@@ -5852,6 +6537,17 @@ const HomeScreen: React.FC = () => {
         onHide={() => setShowFloatingNotif(false)}
         colors={colors}
       />
+
+      {/* Download Progress Modal */}
+      <DownloadProgressModal
+        visible={isDownloadingAlbum}
+        current={albumDownloadProgress.current}
+        total={albumDownloadProgress.total}
+        currentSongName={albumDownloadProgress.songName}
+      />
+
+      {/* Settings Overlay - Rendered last to be on top */}
+      <SettingsOverlay />
     </AnimatedGestureHandlerRootView>
   );
 };
@@ -5960,6 +6656,7 @@ const createStyles = (colors: AppColors) =>
       color: colors.headerText,
       fontSize: 20,
       fontWeight: "bold",
+      marginTop: 10,
     },
     mainHeaderSearchIcon: { paddingTop: 10, paddingRight: 10 },
     headerTopContent: {
@@ -6035,7 +6732,7 @@ const createStyles = (colors: AppColors) =>
       justifyContent: "center",
       height: "100%",
     },
-    languageSelectorContainer: { marginBottom: 15, marginTop: 5 },
+    languageSelectorContainer: { marginBottom: 15, marginTop: -25 },
     languageListContent: { paddingHorizontal: 10, paddingVertical: 5 },
     languageChip: {
       backgroundColor: colors.chip,
@@ -6216,6 +6913,28 @@ const createStyles = (colors: AppColors) =>
       shadowOpacity: 0.2,
       shadowRadius: 3,
       elevation: 4,
+    },
+    downloadAlbumButton: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      backgroundColor: "#ff0066",
+      justifyContent: "center",
+      alignItems: "center",
+      shadowColor: "#ff0066",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      elevation: 5,
+    },
+    downloadedAlbumButton: {
+      backgroundColor: "#00cc6a",
+      shadowColor: "#00cc6a",
+    },
+    downloadAlbumButtonText: {
+      color: "#fff",
+      fontSize: 15,
+      fontWeight: "700",
     },
     playButtonText: { color: colors.text, fontSize: 16, fontWeight: "bold" },
     artistDetailContainer: { paddingBottom: 20 },
@@ -6444,14 +7163,21 @@ const createStyles = (colors: AppColors) =>
       bottom: 0,
       backgroundColor: colors.settingsBackdrop,
       justifyContent: "flex-end",
-      zIndex: 1100,
     },
     settingsContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
       backgroundColor: colors.card,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       paddingHorizontal: 20,
       paddingBottom: 40,
+      maxHeight: '80%',
+    },
+    settingsScrollView: {
+      maxHeight: '100%',
     },
     settingsHandlebarContainer: {
       alignItems: "center",
@@ -7100,37 +7826,43 @@ const createStyles = (colors: AppColors) =>
     },
     miniPlayer: {
       position: "absolute",
-      bottom: Platform.OS === "ios" ? 70 : 150,
-      left: "28.7%",
-      right: "4%",
-      width: "67%",
-      backgroundColor: colors.miniPlayer,
-      borderWidth: 1,
-      borderColor: colors.separator,
-      borderRadius: 10,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: -2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 8,
+      bottom: 55,
+      left: 20,
       zIndex: 50,
-    },
-    miniPlayerFullWidth: {
-      left: "31%",
-      right: "5%",
-      width: "65%",
     },
     miniPlayerContent: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: 8,
-      paddingHorizontal: 10,
+    },
+    miniPlayerArtworkContainer: {
+      width: 55,
+      height: 55,
+      borderRadius: 27.5,
+      overflow: 'hidden',
+      backgroundColor: colors.separator,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.15)',
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+      elevation: 8,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     miniPlayerArtwork: {
-      width: 45,
-      height: 45,
-      borderRadius: 4,
-      backgroundColor: "#2a2a2a",
+      width: 55,
+      height: 55,
+      borderRadius: 27.5,
+    },
+    cdCenterDot: {
+      position: 'absolute',
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
     },
     // Beautiful AI Mic Button Styles
     aiMicButton: {

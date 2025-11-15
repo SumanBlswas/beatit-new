@@ -1,20 +1,23 @@
 // app/_layout.tsx
+import { OnlineModal } from "@/components/OnlineModal";
+import { useAuth } from "@/context/AuthContext";
+import { useNetworkStatus } from "@/services/networkService";
 import { FontAwesome } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
-import { Tabs, usePathname } from "expo-router";
-import { useEffect } from "react";
+import { Tabs, usePathname, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
-  Easing,
-  Extrapolate,
-  interpolate,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withSpring,
-  withTiming,
+    Easing,
+    Extrapolate,
+    interpolate,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withSpring,
+    withTiming,
 } from "react-native-reanimated";
 
 const { width, height } = Dimensions.get("window");
@@ -390,9 +393,27 @@ const MorphingTabBar = () => {
 
 export default function AppLayout() {
   const { isVisible } = useTabBarVisibility();
+  const router = useRouter();
+  const { isOnline } = useNetworkStatus(); // FIX: Destructure isOnline from the object
+  const { userInfo } = useAuth();
+  const wasOffline = React.useRef(false);
+  const hasInitialRedirect = React.useRef(false);
+  const [showOnlineModal, setShowOnlineModal] = useState(false);
 
-  // Create styles within the component
-  const dynamicStyles = StyleSheet.create({
+  // Handle coming back online
+  useEffect(() => {
+    // Coming back online - show enhanced modal if not logged in
+    if (isOnline && wasOffline.current && !userInfo) {
+      wasOffline.current = false;
+      setShowOnlineModal(true);
+    } else if (isOnline && wasOffline.current && userInfo) {
+      // User is already logged in, just reset the flag
+      wasOffline.current = false;
+    }
+  }, [isOnline, router, userInfo]); // Removed pathname from dependencies to prevent loop
+
+  // Create styles within the component with useMemo
+  const dynamicStyles = React.useMemo(() => StyleSheet.create({
     tabBar: {
       position: "absolute",
       bottom: 30,
@@ -403,8 +424,7 @@ export default function AppLayout() {
       backgroundColor: "transparent",
       borderTopWidth: 0,
       elevation: 1,
-      zIndex: 1, // Lower z-index
-      // display: isVisible ? "flex" : "none",
+      zIndex: 1,
       width: "20%"
     },
     tabWrapper: {
@@ -416,7 +436,7 @@ export default function AppLayout() {
       borderRadius: 40,
       backgroundColor: "rgb(255, 0, 102)",
       overflow: "hidden",
-      zIndex: 0, // Lower z-index
+      zIndex: 0,
       shadowColor: "#ff0066",
       shadowOffset: { width: 0, height: 10 },
       shadowOpacity: 0.3,
@@ -424,7 +444,20 @@ export default function AppLayout() {
       elevation: 8888,
       display: isVisible ? "flex" : "none",
     },
-  });
+  }), [isVisible]);
+
+  // Determine initial route based on network status
+  const initialRouteName = !isOnline ? "downloads" : "index";
+
+  // Effect to redirect when going offline
+  useEffect(() => {
+    if (!isOnline && !hasInitialRedirect.current) {
+      hasInitialRedirect.current = true;
+      wasOffline.current = true;
+      // Use push instead of replace to ensure navigation happens
+      router.push("/(tabs)/downloads");
+    }
+  }, [isOnline, router]);
 
   return (
     <View style={styles.container}>
@@ -439,6 +472,7 @@ export default function AppLayout() {
 
       {/* 🚀 Enhanced Tabs */}
       <Tabs
+        initialRouteName={initialRouteName}
         screenOptions={{
           headerShown: false,
           tabBarShowLabel: false,
@@ -452,27 +486,40 @@ export default function AppLayout() {
           },
         }}
       >
-        <Tabs.Screen
-          name="index"
-          options={{
-            // tabBarIcon: (props) => <TabIcon {...props} name="fire" />,
-            tabBarButton: (props: any) => (
-              <Pressable {...props} android_ripple={null} />
-            ),
-            tabBarStyle: { display: "none" },
-          }}
-        />
+        {/* Only render index screen when online */}
+        {isOnline && (
+          <Tabs.Screen
+            name="index"
+            options={{
+              // tabBarIcon: (props) => <TabIcon {...props} name="fire" />,
+              tabBarButton: (props: any) => (
+                <Pressable {...props} android_ripple={null} />
+              ),
+              tabBarStyle: { display: "none" },
+            }}
+          />
+        )}
 
         <Tabs.Screen
           name="eq"
           options={{
             title: "Equalizer",
-            // tabBarStyle: { display: "none" },
+            tabBarStyle: { display: "none" },
             // tabBarIcon: ({ color }) => (
             //   <FontAwesome name="sliders" size={24} color={color} />
             // ),
             tabBarButton: () => null,
             tabBarHideOnKeyboard: true,
+          }}
+        />
+
+        <Tabs.Screen
+          name="downloads"
+          options={{
+            title: "Downloads",
+            tabBarButton: () => null,
+            tabBarHideOnKeyboard: true,
+            tabBarStyle: { display: "none" },
           }}
         />
 
@@ -486,7 +533,29 @@ export default function AppLayout() {
             // tabBarVisible: false
           }}
         />
+
+        <Tabs.Screen
+          name="account"
+          options={{
+            title: "Account",
+            tabBarButton: () => null,
+            tabBarHideOnKeyboard: true,
+            tabBarStyle: { display: "none" },
+          }}
+        />
       </Tabs>
+
+      {/* Enhanced Online Modal */}
+      <OnlineModal
+        visible={showOnlineModal}
+        onClose={() => {
+          setShowOnlineModal(false);
+          // Reload app to show login screen
+          if (typeof window !== 'undefined') {
+            window.location.reload();
+          }
+        }}
+      />
     </View>
   );
 }

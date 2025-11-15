@@ -58,4 +58,38 @@ The app uses the Suman API for music data and DuckDuckGo API for YouTube search 
 ## License
 
 MIT License
-# beatit
+
+## Home Screen Music Player Widget
+
+### Features
+- Displays current playing song, artist, and album artwork
+- Playback controls: play/pause, next, previous
+- Playback progress indicator
+- Tapping widget opens app to current playing screen
+- Real-time updates and background support
+
+### Setup Instructions
+1. Install dependencies:
+	```bash
+	npm install react-native-widget-extension
+	```
+2. Widget configuration is added to `app.json` for both iOS and Android.
+3. Widget UI and sync logic are implemented in `components/MusicPlayerWidget.tsx` and `utils/widgetSync.ts`.
+4. Native code for widgets:
+	- iOS: Swift files in `widgets/MusicPlayerWidgetExtension`
+	- Android: Kotlin provider in `android/app/src/main/java/com/anonymous/widget/MusicPlayerWidgetProvider.kt` and layout in `android/app/src/main/res/layout/music_player_widget.xml`
+5. Widget controls and deep linking are set up for playback actions and opening the app.
+6. Build a custom dev client with EAS to test widgets:
+	```bash
+	eas build --profile development --platform ios
+	eas build --profile development --platform android
+	```
+
+### Notes
+- Widget state updates automatically when playback changes.
+- Placeholder UI is shown when no song is playing.
+- Widget controls trigger playback actions in the main app.
+- For iOS, ensure App Group and widget extension are configured in Xcode.
+- For Android, ensure widget provider and layout are included in the build.
+
+---

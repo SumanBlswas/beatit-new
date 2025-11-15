@@ -1,11 +1,12 @@
 // app/(tabs)/downloads.tsx
+import VideoPlayer from "@/components/VideoPlayer";
 import { usePlayer } from "@/context/PlayerContext"; // Assuming PlayerContext is accessible
 import { ApiSong } from "@/services/apiTypes";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import * as Network from "expo-network";
-import { Stack, router, useFocusEffect } from "expo-router";
+import { Stack, router, useFocusEffect, useSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -84,6 +85,11 @@ const STORAGE_KEYS = {
 
 export default function DownloadsScreen() {
   const { playSong, setQueue } = usePlayer();
+  const params = useSearchParams();
+  const playUriParam = params.playUri as string | undefined;
+  const [videoModalVisible, setVideoModalVisible] = useState(false);
+  const [videoModalUri, setVideoModalUri] = useState<string | null>(null);
+  const [videoModalTitle, setVideoModalTitle] = useState<string | undefined>(undefined);
   const [downloadedSongs, setDownloadedSongs] = useState<ApiSong[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOffline, setIsOffline] = useState<boolean>(false);
@@ -129,6 +135,54 @@ export default function DownloadsScreen() {
       loadDownloadedSongs();
     }, [loadDownloadedSongs])
   );
+
+  // If a playUri param is present (e.g. from external Open-With), attempt to play it
+  useEffect(() => {
+    if (!playUriParam) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const uri = decodeURIComponent(playUriParam);
+        const info = await FileSystem.getInfoAsync(uri);
+        if (!mounted) return;
+        if (!info.exists) {
+          Alert.alert("File not found", "The selected file could not be found on device.");
+          try { router.replace('/downloads'); } catch {}
+          return;
+        }
+
+        // Determine if this is a video by file extension
+        const lower = uri.split('?')[0].toLowerCase();
+        const isVideo = !!lower.match(/\.(mp4|m4v|mov|webm|mkv|avi)$/);
+
+        if (isVideo) {
+          // Open VideoPlayer directly (bypass PlayerContext) for local videos
+          setVideoModalUri(uri);
+          setVideoModalTitle(uri.split('/').pop() || 'External Video');
+          setVideoModalVisible(true);
+          // Clear query param so navigating back doesn't replay
+          try { router.replace('/downloads'); } catch {}
+          return;
+        }
+
+        // Not a video — treat as audio and use existing downloads playback
+        const tempSong: ApiSong = {
+          id: `external-${Date.now()}`,
+          name: uri.split("/").pop() || "External Media",
+          title: uri.split("/").pop() || "External Media",
+          downloadUrl: [{ link: uri, quality: "320kbps" }],
+          localUri: uri,
+        } as any;
+        setQueue([tempSong], 0);
+        await playSong(tempSong);
+        // Clear query param so navigating back doesn't replay
+        try { router.replace('/downloads'); } catch {}
+      } catch (err) {
+        console.warn("Failed to play external file from downloads screen:", err);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [playUriParam, playSong, setQueue]);
 
   const handlePlayDownloadedSong = useCallback(
     async (song: ApiSong) => {
@@ -285,6 +339,14 @@ export default function DownloadsScreen() {
           contentContainerStyle={styles.listContentContainer}
         />
       )}
+
+      {/* Local Video modal used when opening from file manager */}
+      <VideoPlayer
+        visible={videoModalVisible}
+        videoUri={videoModalUri ?? ""}
+        videoTitle={videoModalTitle}
+        onClose={() => setVideoModalVisible(false)}
+      />
     </SafeAreaView>
   );
 }

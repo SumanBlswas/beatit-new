@@ -1,12 +1,13 @@
 import { FontAwesome } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Animated, Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, FlatList, Image, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 interface Playlist {
   id: string;
   name: string;
+  image?: string | any[];
   songs?: any[];
 }
 
@@ -60,6 +61,18 @@ const PlaylistFavoritesModal: React.FC<PlaylistFavoritesModalProps> = ({
 }) => {
   const colors = getColors(theme);
   const [chevronOpacity] = useState(new Animated.Value(0.2));
+  
+  const getPlaylistImageUri = (image: string | any[] | undefined): string => {
+    const placeholderUri = Image.resolveAssetSource(require('@/assets/images/playlist.png')).uri;
+    
+    if (!image) return placeholderUri;
+    if (typeof image === 'string') return image || placeholderUri;
+    if (Array.isArray(image) && image.length > 0) {
+      const img = image.find((i: any) => i.link);
+      return img?.link || placeholderUri;
+    }
+    return placeholderUri;
+  };
 
   const handleChevronPressIn = () => {
     Animated.timing(chevronOpacity, {
@@ -96,11 +109,15 @@ const PlaylistFavoritesModal: React.FC<PlaylistFavoritesModalProps> = ({
           style={styles.list}
           contentContainerStyle={{ paddingBottom: 20 }}
           renderItem={({ item }) => (
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-              <Text style={[styles.cardTitle, { color: colors.text }]}>{item.name}</Text>
-              {/* TODO: Add song list and add/remove logic */}
-              <Text style={[styles.cardSubtitle, { color: colors.text, opacity: 0.7 }]}>Songs: {item.songs?.length || 0}</Text>
-              {/* Example remove button for playlist (optional) */}
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: 'row', alignItems: 'center' }]}> 
+              <Image 
+                source={{ uri: getPlaylistImageUri(item.image) }}
+                style={styles.playlistImage}
+              />
+              <View style={styles.playlistInfo}>
+                <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
+                <Text style={[styles.cardSubtitle, { color: colors.text, opacity: 0.7 }]}>Songs: {item.songs?.length || 0}</Text>
+              </View>
             </View>
           )}
           ListEmptyComponent={<Text style={[styles.emptyText, { color: colors.text, opacity: 0.6 }]}>No playlists yet.</Text>}
@@ -186,6 +203,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 2,
+  },
+  playlistImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  playlistInfo: {
+    flex: 1,
   },
   cardTitle: {
     fontSize: 16,

@@ -1,6 +1,12 @@
 // app/(tabs)/player.tsx
+import { NfcShareButton } from "@/components/NfcShareButton";
+import { NfcShareWaitingModal } from "@/components/NfcShareWaitingModal";
+import { useNfc } from "@/context/NfcContext";
 import { usePlayer, useProgress } from "@/context/PlayerContext";
+import { useBeautifulAlert } from "@/hooks/useBeautifulAlert";
 import { ApiImage } from "@/services/apiTypes";
+import { useNetworkStatus } from "@/services/networkService";
+import { on as eventOn } from '@/utils/eventBus';
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Slider from "@react-native-community/slider";
 import { router, Stack, useFocusEffect } from "expo-router";
@@ -22,6 +28,7 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
+import NfcManager from 'react-native-nfc-manager';
 import Animated, {
   interpolate,
   runOnJS,
@@ -100,6 +107,7 @@ export const FullPlayerScreen: React.FC = () => {
     currentSong,
     isPlaying,
     togglePlayPause,
+    toggleFavorite,
     nextSong,
     previousSong,
     seekTo,
@@ -108,16 +116,32 @@ export const FullPlayerScreen: React.FC = () => {
   } = usePlayer();
 
   const { playbackPosition, playbackDuration } = useProgress();
+  const { isOnline } = useNetworkStatus();
+  const {
+    nfcSupported,
+    nfcEnabled,
+    shareState,
+    shareViaNfc,
+    cancelShare,
+  } = useNfc();
+  const { showAlert, AlertComponent } = useBeautifulAlert();
 
   const [isSeeking, setIsSeeking] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
+  const [showNfcModal, setShowNfcModal] = useState(false);
   const isChangingSongRef = useRef(false);
 
   // Animated values
   const artworkAppear = useSharedValue(0);
   const controlsAppear = useSharedValue(0);
   const slideOffset = useSharedValue(0);
+  // Heart/favorite animation shared values
+  const heartOpacity = useSharedValue(0);
+  const heartTranslate = useSharedValue(0);
+  // Thumbs-down animation shared values
+  const thumbsOpacity = useSharedValue(0);
+  const thumbsTranslate = useSharedValue(0);
 
   const handleBack = () => {
     setIsExiting(true);
@@ -127,7 +151,12 @@ export const FullPlayerScreen: React.FC = () => {
 
     // Navigate back immediately after animation starts
     setTimeout(() => {
-      router.back();
+      // If offline, go to downloads page, otherwise use normal back navigation
+      if (!isOnline) {
+        router.replace("/(tabs)/downloads");
+      } else {
+        router.back();
+      }
     }, 150);
 
     // Reset exit state after navigation
@@ -150,6 +179,7 @@ export const FullPlayerScreen: React.FC = () => {
         controlsAppear.value = withTiming(1, { duration: 700 });
         slideOffset.value = withTiming(0, { duration: 300 });
       }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentSong, isExiting])
   );
 
@@ -161,6 +191,7 @@ export const FullPlayerScreen: React.FC = () => {
       slideOffset.value = withTiming(0, { duration: 300 });
     }
     isChangingSongRef.current = false;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong]);
 
   useEffect(() => {
@@ -168,6 +199,16 @@ export const FullPlayerScreen: React.FC = () => {
       setSliderValue(playbackPosition);
     }
   }, [playbackPosition, isSeeking]);
+  
+  // Auto-close NFC modal after success/error
+  useEffect(() => {
+    if (shareState === 'success' || shareState === 'error' || shareState === 'cancelled') {
+      const timeout = setTimeout(() => {
+        setShowNfcModal(false);
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [shareState]);
 
   // Fixed animated styles with proper typing
   const animatedArtworkStyle = useAnimatedStyle(() => {
@@ -177,6 +218,20 @@ export const FullPlayerScreen: React.FC = () => {
     return {
       opacity: artworkAppear.value,
       transform: [{ scale }, { translateY }],
+    } as any;
+  });
+
+  const heartStyle = useAnimatedStyle(() => {
+    return {
+      opacity: heartOpacity.value,
+      transform: [{ translateY: heartTranslate.value }],
+    } as any;
+  });
+
+  const thumbsStyle = useAnimatedStyle(() => {
+    return {
+      opacity: thumbsOpacity.value,
+      transform: [{ translateY: thumbsTranslate.value }],
     } as any;
   });
 
@@ -216,6 +271,59 @@ export const FullPlayerScreen: React.FC = () => {
         slideOffset.value = withTiming(0, { duration: 300 });
       }
     });
+
+    // Double-tap gesture to favorite + show heart animation
+    const triggerHeart = useCallback(() => {
+      'worklet';
+      heartOpacity.value = 1;
+      heartTranslate.value = 0;
+      heartTranslate.value = withTiming(-28, { duration: 700 });
+      heartOpacity.value = withTiming(0, { duration: 700 });
+    }, [heartOpacity, heartTranslate]);
+
+    const triggerThumbsDown = useCallback(() => {
+      'worklet';
+      thumbsOpacity.value = 1;
+      thumbsTranslate.value = 0;
+      // Animate downwards (top -> bottom)
+      thumbsTranslate.value = withTiming(28, { duration: 700 });
+      thumbsOpacity.value = withTiming(0, { duration: 700 });
+    }, [thumbsOpacity, thumbsTranslate]);
+
+    const doubleTap = Gesture.Tap()
+      .numberOfTaps(2)
+      .maxDelay(400)
+      .onEnd(() => {
+        // Simply toggle favorite on JS thread. The favoritesUpdated event
+        // will be emitted by PlayerContext and the listener below will
+        // handle showing the heart animation when appropriate.
+        try {
+          runOnJS(toggleFavorite)();
+        } catch {}
+      });
+
+    // Combine swipe and double-tap so both work on the artwork area
+    const combinedGesture = Gesture.Simultaneous(swipeGesture, doubleTap);
+
+    // Listen for favorites updates and show heart when current song is added
+    useEffect(() => {
+      const handler = (payload: { newFavorites: any[]; action?: string; songId?: string }) => {
+        if (!currentSong) return;
+        const songId = payload?.songId;
+        if (!songId) return;
+        if (songId !== currentSong.id) return;
+        const action = payload.action ?? ((payload.newFavorites || []).some((s) => s.id === songId) ? "added" : "removed");
+        try {
+          if (action === "added") {
+            triggerHeart();
+          } else {
+            triggerThumbsDown();
+          }
+        } catch {}
+      };
+      const unsubscribe = eventOn('favoritesUpdated', handler);
+      return () => unsubscribe && unsubscribe();
+    }, [currentSong, triggerHeart, triggerThumbsDown]);
 
   if (!currentSong) {
     return (
@@ -294,6 +402,65 @@ export const FullPlayerScreen: React.FC = () => {
     }
   };
 
+  const handleNfcShare = async () => {
+    if (!currentSong) {
+      showAlert({
+        title: 'No Song Playing',
+        message: 'Please play a song first before sharing via NFC.',
+        type: 'warning',
+        buttons: [{ text: 'OK', style: 'default' }],
+      });
+      return;
+    }
+    
+    if (!nfcSupported) {
+      showAlert({
+        title: 'NFC Not Available',
+        message: 'NFC is not supported on this device or you are using Expo Go.\n\nPlease build a development build using:\n\neas build --profile development --platform android\n\nOr run: npx expo run:android',
+        type: 'warning',
+        buttons: [{ text: 'OK', style: 'default' }],
+      });
+      return;
+    }
+    
+    if (!nfcEnabled) {
+      showAlert({
+        title: 'NFC Disabled',
+        message: 'NFC is disabled on your device. Please enable NFC in Settings to share songs.',
+        type: 'warning',
+        buttons: [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open Settings', 
+            style: 'default',
+            onPress: async () => {
+              try {
+                await NfcManager.goToNfcSetting();
+              } catch (error) {
+                console.error('Failed to open NFC settings:', error);
+              }
+            }
+          }
+        ],
+      });
+      return;
+    }
+    
+    setShowNfcModal(true);
+    try {
+      await shareViaNfc(currentSong.id);
+    } catch (error) {
+      console.error("Error sharing via NFC:", error);
+    }
+  };
+
+  const handleNfcModalClose = () => {
+    setShowNfcModal(false);
+    if (shareState === 'waiting') {
+      cancelShare();
+    }
+  };
+  
   const navigateToEQ = () => {
     router.push("/eq");
   };
@@ -342,7 +509,7 @@ export const FullPlayerScreen: React.FC = () => {
               </TouchableOpacity>
             </Animated.View>
 
-            <GestureDetector gesture={swipeGesture}>
+            <GestureDetector gesture={combinedGesture}>
               <Animated.View
                 style={[styles.swipeableSection, animatedSlideStyle]}
               >
@@ -350,6 +517,12 @@ export const FullPlayerScreen: React.FC = () => {
                   style={[styles.artworkContainer, animatedArtworkStyle]}
                 >
                   <Image source={{ uri: artworkUrl }} style={styles.artwork} />
+                  <Animated.View style={[styles.heartOverlay, heartStyle]} pointerEvents="none">
+                    <FontAwesome name="heart" size={64} color="#ff4d6d" />
+                  </Animated.View>
+                  <Animated.View style={[styles.heartOverlay, thumbsStyle]} pointerEvents="none">
+                    <FontAwesome name="thumbs-down" size={64} color="#66b3ff" />
+                  </Animated.View>
                 </Animated.View>
 
                 <Animated.View
@@ -453,9 +626,31 @@ export const FullPlayerScreen: React.FC = () => {
                 <FontAwesome name="share-alt" size={20} color="#eee" />
               </TouchableOpacity>
             </Animated.View>
+            
+            {/* NFC Share Button (Android only) */}
+            {Platform.OS === 'android' && (
+              <Animated.View style={[styles.nfcButtonContainer, animatedControlsStyle]}>
+                <NfcShareButton
+                  onPress={handleNfcShare}
+                  disabled={!currentSong}
+                  size="small"
+                  style={styles.nfcButton}
+                />
+              </Animated.View>
+            )}
+            
+            {/* NFC Share Modal */}
+            <NfcShareWaitingModal
+              visible={showNfcModal}
+              shareState={shareState}
+              onCancel={handleNfcModalClose}
+              onClose={handleNfcModalClose}
+              songTitle={songTitle}
+            />
           </SafeAreaView>
         </View>
       </ImageBackground>
+      <AlertComponent />
     </GestureHandlerRootView>
   );
 };
@@ -513,17 +708,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 20,
-    maxHeight: width * 0.75 + 40,
+    paddingHorizontal: 20,
+    maxHeight: width * 0.65 + 40,
   },
   artwork: {
     width: width * 0.75,
-    height: width * 0.75,
+    height: width * 0.65,
     borderRadius: 15,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
     shadowRadius: 15,
     elevation: 15,
+  },
+  heartOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
   },
   songInfoContainer: {
     alignItems: "center",
@@ -626,5 +831,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
     paddingHorizontal: 2,
     borderRadius: 2,
+  },
+  nfcButtonContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+    alignItems: 'center',
+  },
+  nfcButton: {
+    minWidth: 160,
   },
 });

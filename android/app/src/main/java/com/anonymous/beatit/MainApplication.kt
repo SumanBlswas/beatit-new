@@ -25,6 +25,21 @@ class MainApplication : Application(), ReactApplication {
             val packages = PackageList(this).packages
             // Packages that cannot be autolinked yet can be added manually here, for example:
             // packages.add(MyReactNativePackage())
+            try {
+              packages.add(com.anonymous.beatit.EqualizerPackage())
+            } catch (e: Exception) {
+              // ignore if package cannot be added
+            }
+            try {
+              packages.add(com.anonymous.beatit.ContentUriCopyPackage())
+            } catch (e: Exception) {
+              // ignore if package cannot be added
+            }
+            try {
+              packages.add(com.anonymous.beatit.PlaybackInfoPackage())
+            } catch (e: Exception) {
+              // ignore if package cannot be added
+            }
             return packages
           }
 
