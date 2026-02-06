@@ -45,7 +45,7 @@ export const BatteryOptimizationChecker: React.FC = () => {
                   try {
                     await IntentLauncher.startActivityAsync(
                       "android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
-                      { data: "package:com.songeet" }
+                      { data: "package:com.suman334.rear" }
                     );
                   } catch (error) {
                     console.error(

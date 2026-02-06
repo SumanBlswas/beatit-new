@@ -13,7 +13,6 @@ import {
   setLoggedOutFlag,
 } from "@/utils/storage";
 import { FontAwesome } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BlurView } from "expo-blur";
 import * as FileSystem from "expo-file-system";
 import { LinearGradient } from "expo-linear-gradient";
@@ -24,7 +23,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -34,7 +32,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import Animated, {
@@ -46,24 +44,9 @@ import Animated, {
   withTiming
 } from "react-native-reanimated";
 // --- App Version & Update Check ---
+// --- App Version & Update Check ---
+import { checkForUpdate, downloadAndInstallUpdate, installUpdate, isUpdateDownloaded, UpdateInfo } from "@/services/updateService";
 const APP_VERSION = require('../../package.json').version;
-const GITHUB_REPO = "yourusername/beatit-app"; // CHANGE THIS TO YOUR REPO
-const UPDATE_CHECK_KEY = "last_update_check";
-
-function getTodayDateString() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-async function fetchLatestVersion() {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/releases/latest`);
-    const data = await res.json();
-    return data.tag_name?.replace(/^v/, "") || null;
-  } catch {
-    return null;
-  }
-}
 
 export default function AccountScreen() {
   const {
@@ -98,41 +81,75 @@ export default function AccountScreen() {
   const [hasLoggedOut, setHasLoggedOut] = useState(false);
 
   // --- Version State ---
-  const [latestVersion, setLatestVersion] = useState<string | null>(null);
-  const [updateStatus, setUpdateStatus] = useState<string>("Checking...");
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
-  // --- Check for updates (manual & daily) ---
-  const checkForUpdate = useCallback(async (manual = false) => {
-    setCheckingUpdate(true);
-    const latest = await fetchLatestVersion();
-    setLatestVersion(latest);
-    if (!latest) {
-      setUpdateStatus("Could not check");
-    } else if (latest === APP_VERSION) {
-      setUpdateStatus("Up to date");
-    } else {
-      setUpdateStatus(`Update available: v${latest}`);
-    }
-    setCheckingUpdate(false);
-    // Store last check date
-    if (!manual) await AsyncStorage.setItem(UPDATE_CHECK_KEY, getTodayDateString());
-  }, []);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isReadyToInstall, setIsReadyToInstall] = useState(false);
 
-  // --- Auto check once per day ---
-  useEffect(() => {
-    (async () => {
-      const lastCheck = await AsyncStorage.getItem(UPDATE_CHECK_KEY);
-      if (lastCheck !== getTodayDateString()) {
-        await checkForUpdate();
-      } else {
-        // If already checked today, just show status
-        const latest = await fetchLatestVersion();
-        setLatestVersion(latest);
-        if (!latest) setUpdateStatus("Could not check");
-        else if (latest === APP_VERSION) setUpdateStatus("Up to date");
-        else setUpdateStatus(`Update available: v${latest}`);
+  // Custom Alert State for Updates
+  const [showUpdateAlert, setShowUpdateAlert] = useState(false);
+  const [updateAlertInfo, setUpdateAlertInfo] = useState({ title: '', message: '', type: 'info' as 'info' | 'success' | 'warning' | 'error' });
+
+  const handleCheckUpdate = async () => {
+    setCheckingUpdate(true);
+    const update = await checkForUpdate();
+    setCheckingUpdate(false);
+
+    if (update) {
+      setUpdateInfo(update);
+    } else {
+      setUpdateAlertInfo({
+        title: "Up to Date",
+        message: "You are using the latest version of the app.",
+        type: "success"
+      });
+      setShowUpdateAlert(true);
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    if (!updateInfo) return;
+
+    if (isReadyToInstall) {
+      try {
+        await installUpdate(updateInfo.version);
+      } catch (e) {
+        console.warn("Install failed", e);
+        setIsReadyToInstall(false);
       }
-    })();
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      await downloadAndInstallUpdate(
+        updateInfo.downloadUrl,
+        `beatit-v${updateInfo.version}.apk`,
+        (progress) => setDownloadProgress(progress)
+      );
+      setIsDownloading(false);
+      setIsReadyToInstall(true);
+    } catch (e) {
+      setIsDownloading(false);
+      setUpdateAlertInfo({
+        title: "Download Failed",
+        message: "Could not download the update. Please try again.",
+        type: "error"
+      });
+      setShowUpdateAlert(true);
+    }
+  };
+
+  // Check for update silently on mount
+  useEffect(() => {
+    checkForUpdate().then(async (update) => {
+      if (update) {
+        setUpdateInfo(update);
+        const downloaded = await isUpdateDownloaded(update.version);
+        setIsReadyToInstall(downloaded);
+      }
+    });
   }, []);
   const avatarScale = useSharedValue(0.5);
   const avatarTranslateX = useSharedValue(0);
@@ -745,23 +762,39 @@ export default function AccountScreen() {
               subtitle={`Current: v${APP_VERSION}`}
               showChevron={false}
               rightElement={
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: 13, color: updateStatus.includes('Update') ? '#ff0066' : '#666' }}>{updateStatus}</Text>
-                  <TouchableOpacity
-                    style={{ marginTop: 4, padding: 6, backgroundColor: '#eee', borderRadius: 8 }}
-                    onPress={() => checkForUpdate(true)}
-                    disabled={checkingUpdate}
-                  >
-                    <Text style={{ fontSize: 13, color: '#6366f1' }}>{checkingUpdate ? 'Checking...' : 'Check for Update'}</Text>
-                  </TouchableOpacity>
-                  {updateStatus.includes('Update') && latestVersion && (
+                <View style={{ alignItems: 'flex-end', minWidth: 100 }}>
+                  {isDownloading ? (
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, color: '#aaa', marginBottom: 4 }}>Downloading...</Text>
+                      <View style={{ width: 80, height: 4, backgroundColor: '#333', borderRadius: 2, overflow: 'hidden' }}>
+                        <View style={{ width: `${downloadProgress * 100}%`, height: '100%', backgroundColor: '#ff0066' }} />
+                      </View>
+                    </View>
+                  ) : isReadyToInstall && updateInfo ? (
                     <TouchableOpacity
-                      style={{ marginTop: 4, padding: 6, backgroundColor: '#ff0066', borderRadius: 8 }}
-                      onPress={() => {
-                        Linking.openURL('https://github.com/' + GITHUB_REPO + '/releases');
-                      }}
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#00cc00', borderRadius: 15 }}
+                      onPress={handleDownloadUpdate}
                     >
-                      <Text style={{ fontSize: 13, color: '#fff' }}>Update Now</Text>
+                      <Text style={{ fontSize: 12, color: '#fff', fontWeight: 'bold' }}>Install Update</Text>
+                    </TouchableOpacity>
+                  ) : updateInfo ? (
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#ff0066', borderRadius: 15 }}
+                      onPress={handleDownloadUpdate}
+                    >
+                      <Text style={{ fontSize: 12, color: '#fff', fontWeight: 'bold' }}>Update to v{updateInfo.version}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#333', borderRadius: 15 }}
+                      onPress={handleCheckUpdate}
+                      disabled={checkingUpdate}
+                    >
+                      {checkingUpdate ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <Text style={{ fontSize: 12, color: '#fff' }}>Check Update</Text>
+                      )}
                     </TouchableOpacity>
                   )}
                 </View>
@@ -1348,6 +1381,15 @@ export default function AccountScreen() {
         onConfirm={handleClearAppData}
         onCancel={() => setShowClearDataModal(false)}
         dangerMode={true}
+      />
+
+      {/* Update Status Alert */}
+      <BeautifulAlert
+        visible={showUpdateAlert}
+        title={updateAlertInfo.title}
+        message={updateAlertInfo.message}
+        type={updateAlertInfo.type}
+        onClose={() => setShowUpdateAlert(false)}
       />
     </View>
   );

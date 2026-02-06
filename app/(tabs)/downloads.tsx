@@ -1318,22 +1318,35 @@ export default function DownloadsScreen() {
                           key={video.id}
                           style={styles.videoCard}
                           onPress={async () => {
-                            console.log("[Downloads] Video selected:", {
-                              uri: video.uri,
-                              title: video.filename,
-                              width: video.width,
-                              height: video.height,
-                            });
+                            console.log("[Downloads] Video selected:", video.filename);
 
-                            // For Android content:// URIs, copy to cache first for better compatibility
                             let finalUri = video.uri;
-                            if (Platform.OS === 'android' && video.uri.startsWith('content:')) {
+                            if (Platform.OS === 'android') {
                               try {
-                                console.log("[Downloads] Copying content URI to cache for video");
-                                finalUri = await copyContentUriToCache(video.uri);
-                                console.log("[Downloads] Video URI copied to cache:", finalUri);
+                                if (video.uri.startsWith('content:')) {
+                                  finalUri = await copyContentUriToCache(video.uri);
+                                } else if (video.uri.startsWith('file:///storage/')) {
+                                  const ext = video.filename.split('.').pop() || 'mp4';
+                                  const safeName = `temp_vid_${Date.now()}.${ext}`;
+                                  const dest = `${FileSystem.cacheDirectory}${safeName}`;
+
+                                  await FileSystem.copyAsync({ from: video.uri, to: dest });
+
+                                  // --- ADD THIS CHECK ---
+                                  const check = await FileSystem.getInfoAsync(dest);
+                                  if (!check.exists || check.size === 0) {
+                                    throw new Error("File copy failed or file is empty");
+                                  }
+
+                                  // Small delay to let the OS finalize the file stream
+                                  await new Promise(resolve => setTimeout(resolve, 100));
+
+                                  finalUri = dest;
+                                }
                               } catch (error) {
-                                console.warn("[Downloads] Failed to copy video URI, using original:", error);
+                                console.warn("[Downloads] Failed to copy video:", error);
+                                Alert.alert("Error", "Could not prepare video for playback.");
+                                return; // Stop here if copy failed
                               }
                             }
 

@@ -45,27 +45,33 @@ export default function VideoPlayer({
   onNext,
   onPrevious,
 }: VideoPlayerProps) {
-  // Early return if not visible or no video URI to prevent unnecessary renders
-  if (!visible || !videoUri || videoUri.trim() === '') {
-    return null;
-  }
+  const player = useVideoPlayer(videoUri || null, (player) => {
+    if (videoUri) {
+      console.log("[expo-prev VideoPlayer] Player callback - playing video");
+      player.loop = false;
+      player.play();
 
-  console.log("[expo-prev VideoPlayer] Received videoUri:", videoUri);
-  console.log("[expo-prev VideoPlayer] URI substring:", videoUri.substring(0, 100));
-
-  const player = useVideoPlayer(videoUri, (player) => {
-    console.log("[expo-prev VideoPlayer] Player callback - playing video");
-    player.loop = false;
-    player.play();
-
-    setTimeout(() => {
-      console.log("[expo-prev VideoPlayer] Player state:", {
-        playing: player.playing,
-        status: (player as any).status,
-        error: (player as any).error,
+      const statusSubscription = player.addListener('statusChange', (payload) => {
+        if (payload.status === 'error') {
+          console.error("[expo-prev VideoPlayer] Status Changed to ERROR:", payload.error);
+        }
       });
-    }, 500);
+
+      // Cleanup listener when player is re-created or unmounted is handled by expo-video internally for the player instance usually,
+      // but strictly speaking we should clean up if we could. However useVideoPlayer callback runs once per player instance creation.
+
+      setTimeout(() => {
+        console.log("[expo-prev VideoPlayer] Player state:", {
+          playing: player.playing,
+          status: player.status,
+          error: (player as any).error,
+        });
+      }, 500);
+    }
   });
+
+  // Early return for rendering - but hooks must run first!
+  const shouldRender = visible && videoUri && videoUri.trim() !== '';
 
   const [showControls, setShowControls] = useState(true);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -703,114 +709,11 @@ export default function VideoPlayer({
   useEffect(() => {
     if (!visible || !player) return;
 
-    const processTracks = () => {
-      try {
-        let audioTracks: any[] = [];
-        let subtitleTracks: any[] = [];
+    // Track processing removed to prevent crash
+    console.log("Track processing disabled intentionally.");
+    setAvailableAudioTracks([]);
+    setAvailableSubtitles([]);
 
-        const audioTrackSource = player.availableAudioTracks;
-        if (audioTrackSource && audioTrackSource.length > 0) {
-          // Store original tracks
-          originalAudioTracks.current = Array.from(audioTrackSource);
-
-          audioTracks = audioTrackSource.map((track: any, index: number) => ({
-            ...track,
-            index: index,
-            label:
-              track.title ||
-              track.language ||
-              track.label ||
-              `Audio ${index + 1}`,
-            language: track.language || track.lang,
-          }));
-          console.log("Real audio tracks detected:", audioTracks);
-        } else {
-          originalAudioTracks.current = [];
-          console.log("No audio tracks found.");
-        }
-
-        const subtitleSource = player.availableSubtitleTracks;
-        if (subtitleSource && subtitleSource.length > 0) {
-          // Store original tracks
-          originalSubtitleTracks.current = Array.from(subtitleSource);
-
-          subtitleTracks = subtitleSource.map((track: any, index: number) => ({
-            ...track,
-            index: index,
-            label:
-              track.title ||
-              track.language ||
-              track.label ||
-              `Subtitle ${index + 1}`,
-            language: track.language || track.lang,
-          }));
-          console.log("Real subtitle tracks detected:", subtitleTracks);
-        } else {
-          originalSubtitleTracks.current = [];
-          console.log("No subtitle tracks found.");
-        }
-
-        setAvailableAudioTracks(audioTracks);
-        setAvailableSubtitles(subtitleTracks);
-
-        // --- Find matching audio track by comparing language ---
-        const currentAudio = player.audioTrack;
-
-        // Auto-enable subtitle track that matches current audio language
-        if (currentAudio && subtitleTracks.length > 0) {
-          const matchingSubtitle = subtitleTracks.find(
-            (t) => t.language === currentAudio.language
-          );
-          if (matchingSubtitle) {
-            console.log(`Auto-enabling subtitle for audio language: ${currentAudio.language}`);
-            player.subtitleTrack = originalSubtitleTracks.current[matchingSubtitle.index];
-            setSubtitlesEnabled(true);
-            setSelectedSubtitle(matchingSubtitle.index);
-          }
-        }
-
-
-        if (currentAudio && audioTracks.length > 0) {
-          const matchingTrack = audioTracks.find(
-            (t) => t.language === currentAudio.language
-          );
-          if (matchingTrack) {
-            setSelectedAudioTrack(matchingTrack.index);
-          } else {
-            setSelectedAudioTrack(audioTracks[0].index);
-          }
-        } else if (audioTracks.length > 0) {
-          setSelectedAudioTrack(audioTracks[0].index);
-        }
-
-        // --- Find matching subtitle track by comparing language ---
-        const currentSubtitle = player.subtitleTrack;
-        if (currentSubtitle && subtitleTracks.length > 0) {
-          const matchingTrack = subtitleTracks.find(
-            (t) => t.language === currentSubtitle.language
-          );
-          if (matchingTrack) {
-            setSelectedSubtitle(matchingTrack.index);
-            setSubtitlesEnabled(true);
-          } else {
-            setSelectedSubtitle(-1);
-            setSubtitlesEnabled(false);
-          }
-        } else {
-          setSelectedSubtitle(-1);
-          setSubtitlesEnabled(false);
-        }
-      } catch (error) {
-        console.error("Error processing tracks:", error);
-        setAvailableAudioTracks([]);
-        setAvailableSubtitles([]);
-      }
-    };
-
-    processTracks();
-
-    // Note: expo-video may not have direct track change events
-    // We process tracks on mount/player change instead
   }, [visible, player, liveSubtitlesEnabled, isPlaying, startLiveSubtitles]);
 
   useEffect(() => {
@@ -890,6 +793,8 @@ export default function VideoPlayer({
     .onEnd(() => {
       runOnJS(handleDoubleTapSeek)('right');
     });
+
+  if (!shouldRender) return null;
 
   return (
     <Modal

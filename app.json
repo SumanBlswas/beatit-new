@@ -55,7 +55,10 @@
     "owner": "suman334",
     "android": {
       "package": "com.suman334.rear"
-    }
+    },
+    "plugins": [
+      "expo-video"
+    ]
   },
   "edgeToEdgeEnabled": true,
   "android": {

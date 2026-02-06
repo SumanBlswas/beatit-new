@@ -133,6 +133,10 @@ const NotificationCardPage: React.FC<NotificationCardPageProps> = ({
       autoCollapseTimer.current = setTimeout(() => {
         setIsExpanded(false);
       }, 6000) as unknown as NodeJS.Timeout;
+    } else {
+      // Ensure drag state is reset when collapsed (auto or manual)
+      runOnJS(setIsDragging)(false);
+      dismissAreaOpacity.value = withTiming(0);
     }
     expansionProgress.value = withSpring(isExpanded ? 1 : 0, {
       damping: 20,
@@ -307,7 +311,7 @@ const NotificationCardPage: React.FC<NotificationCardPageProps> = ({
       transform: [
         { translateX: notificationTranslateX.value },
         { translateY: notificationTranslateY.value },
-      ],
+      ] as any,
     };
   });
 
@@ -355,7 +359,7 @@ const NotificationCardPage: React.FC<NotificationCardPageProps> = ({
       transform: [
         { translateX: notificationTranslateX.value },
         { translateY: notificationTranslateY.value },
-      ],
+      ] as any,
     };
   });
 
@@ -597,7 +601,11 @@ const NotificationCardPage: React.FC<NotificationCardPageProps> = ({
       {/* --- THIS IS THE FIX --- */}
       {/* The overlay is now only rendered when the notification is expanded */}
       {isExpanded && (
-        <TouchableWithoutFeedback onPress={() => setIsExpanded(false)}>
+        <TouchableWithoutFeedback onPress={() => {
+          setIsExpanded(false);
+          runOnJS(setIsDragging)(false);
+          dismissAreaOpacity.value = withTiming(0);
+        }}>
           <View style={StyleSheet.absoluteFill} />
         </TouchableWithoutFeedback>
       )}
