@@ -1,32 +1,21 @@
-import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
+import React from 'react';
 
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+// Import the Player Screen component directly
+// Note: The path './(tabs)/player' depends on where +not-found.tsx is located relative to (tabs)
+// If this import fails, try: import PlayerScreen from "@/app/(tabs)/player";
+import PlayerScreen from './(tabs)/player';
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <ThemedView style={styles.container}>
-        <ThemedText type="title">This screen does not exist.</ThemedText>
-        <Link href="/" style={styles.link}>
-          <ThemedText type="link">Go to home screen!</ThemedText>
-        </Link>
-      </ThemedView>
+      {/* We hide the navigation header so it looks exactly 
+        like the standard Player screen 
+      */}
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Render the Player UI directly */}
+      <PlayerScreen />
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-});

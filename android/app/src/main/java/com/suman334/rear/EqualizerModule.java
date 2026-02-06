@@ -1,4 +1,4 @@
-package com.anonymous.beatit;
+package com.suman334.rear;
 
 import android.media.audiofx.Equalizer;
 import android.util.Log;

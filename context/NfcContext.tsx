@@ -12,16 +12,16 @@ import { BeautifulAlert } from '../components/BeautifulAlert';
 import { ApiSong } from '../services/apiTypes';
 import * as downloadService from '../services/downloadService';
 import {
-    startNfcListener,
-    stopNfcListener,
-    validateNfcPayload,
+  startNfcListener,
+  stopNfcListener,
+  validateNfcPayload,
 } from '../services/nfc/guestNfc';
 import {
-    cancelNfcOperation,
-    initializeNfc,
-    isNfcEnabled,
-    openNfcSettings,
-    writeNfcPayload,
+  cancelNfcOperation,
+  initializeNfc,
+  isNfcEnabled,
+  openNfcSettings,
+  writeNfcPayload,
 } from '../services/nfc/hostNfc';
 import { NfcPayload, NfcShareState } from '../services/nfc/nfcTypes';
 import { usePlayer } from './PlayerContext';
@@ -38,20 +38,20 @@ interface NfcContextType {
   shareState: NfcShareState;
   autoAcceptNfc: boolean;
   lastReceivedPayload: NfcPayload | null;
-  
+
   // Host (sharing) functions
   shareViaNfc: (songId: string) => Promise<void>;
   cancelShare: () => Promise<void>;
-  
+
   // Guest (receiving) functions
   enableNfcListener: () => Promise<void>;
   disableNfcListener: () => Promise<void>;
-  
+
   // Settings
   setAutoAcceptNfc: (enabled: boolean) => Promise<void>;
   checkNfcStatus: () => Promise<void>;
   openNfcSettingsApp: () => Promise<void>;
-  
+
   // Manual handling
   handleNfcUrl: (url: string) => Promise<void>;
 }
@@ -72,14 +72,14 @@ interface AlertConfig {
 
 export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { playSong, queue } = usePlayer();
-  
+
   const [nfcSupported, setNfcSupported] = useState(false);
   const [nfcEnabled, setNfcEnabled] = useState(false);
   const [nfcListening, setNfcListening] = useState(false);
   const [shareState, setShareState] = useState<NfcShareState>('idle');
   const [autoAcceptNfc, setAutoAcceptNfcState] = useState(false);
   const [lastReceivedPayload, setLastReceivedPayload] = useState<NfcPayload | null>(null);
-  
+
   // Beautiful Alert state
   const [alertConfig, setAlertConfig] = useState<AlertConfig>({
     visible: false,
@@ -96,7 +96,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const hideAlert = useCallback(() => {
     setAlertConfig(prev => ({ ...prev, visible: false }));
   }, []);
-  
+
   /**
    * Initialize NFC on mount
    */
@@ -106,28 +106,28 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.log('NFC is only supported on Android');
         return;
       }
-      
+
       console.log('Initializing NFC...');
       const supported = await initializeNfc();
       console.log('NFC supported:', supported);
       setNfcSupported(supported);
-      
+
       if (!supported) {
         console.warn('⚠️ NFC NOT SUPPORTED - You are likely using Expo Go!');
         console.warn('📱 To use NFC, build a development build:');
         console.warn('   eas build --profile development --platform android');
         console.warn('   OR: npx expo run:android');
       }
-      
+
       if (supported) {
         const enabled = await isNfcEnabled();
         console.log('NFC enabled:', enabled);
         setNfcEnabled(enabled);
-        
+
         // Load settings
         const autoAccept = await AsyncStorage.getItem(NFC_AUTO_ACCEPT_KEY);
         setAutoAcceptNfcState(autoAccept === 'true');
-        
+
         const nfcEnabledSetting = await AsyncStorage.getItem(NFC_ENABLED_KEY);
         if (nfcEnabledSetting !== 'false' && enabled) {
           // Auto-start NFC listener if enabled
@@ -143,16 +143,16 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('NFC initialization failed - you may be using Expo Go. Build a dev build to use NFC.');
       }
     };
-    
+
     initNfc();
-    
+
     // Clean up on unmount
     return () => {
       stopNfcListener().catch(console.error);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
+
   /**
    * Handle app state changes (restart NFC listener when app comes to foreground)
    */
@@ -162,10 +162,10 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Re-check NFC status when app becomes active
         const enabled = await isNfcEnabled();
         const wasEnabled = nfcEnabled;
-        
+
         console.log('App became active. NFC was enabled:', wasEnabled, ', now enabled:', enabled);
         setNfcEnabled(enabled);
-        
+
         // Show helpful message if NFC was just enabled
         if (!wasEnabled && enabled) {
           showAlert({
@@ -175,7 +175,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             buttons: [{ text: 'Great!', style: 'default' }],
           });
         }
-        
+
         // Restart listener if it was enabled before
         const nfcEnabledSetting = await AsyncStorage.getItem(NFC_ENABLED_KEY);
         if (nfcEnabledSetting !== 'false' && enabled && !nfcListening) {
@@ -189,13 +189,13 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
     });
-    
+
     return () => {
       subscription.remove();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nfcSupported, nfcEnabled, nfcListening, showAlert]);
-  
+
   /**
    * Find song by ID in downloaded songs or queue
    */
@@ -203,18 +203,18 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // First check downloaded songs
     const downloadedSongs = await downloadService.getDownloadedSongs();
     const downloadedSong = downloadedSongs.find((s) => s.id === songId);
-    
+
     if (downloadedSong) {
       // Return as ApiSong (DownloadedSong extends ApiSong)
       return downloadedSong as ApiSong;
     }
-    
+
     // Check current queue
     const queueSong = queue.find((s) => s.id === songId);
-    
+
     return queueSong;
   }, [queue]);
-  
+
   /**
    * Handle deep link URLs from NFC intents
    */
@@ -223,39 +223,39 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Parse URL to extract payload
       const urlObj = new URL(url);
       const params = urlObj.searchParams;
-      
+
       const session = params.get('session');
       const songId = params.get('songId');
       const expiry = params.get('expiry');
-      
+
       if (!session || !songId || !expiry) {
         Alert.alert('Error', 'Invalid NFC link');
         return;
       }
-      
+
       const payload: NfcPayload = {
         session,
         songId,
         expiry: parseInt(expiry, 10),
       };
-      
+
       const sig = params.get('sig');
       const secretPublic = params.get('secretPublic');
-      
+
       if (sig) payload.sig = sig;
       if (secretPublic) payload.secretPublic = secretPublic;
-      
+
       // Validate payload
       const validation = await validateNfcPayload(payload);
-      
+
       if (!validation.valid) {
         Alert.alert('Error', validation.error || 'Invalid NFC payload');
         return;
       }
-      
+
       // Handle the validated payload - playSongFromNfc will be called
       setLastReceivedPayload(payload);
-      
+
       if (autoAcceptNfc) {
         // Auto-play without confirmation
         const song = await findSongById(payload.songId);
@@ -310,39 +310,39 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       Alert.alert('Error', 'Failed to process NFC link');
     }
   }, [autoAcceptNfc, findSongById, playSong]);
-  
+
   useEffect(() => {
     const handleUrl = async (event: { url: string }) => {
       if (event.url.startsWith('beatit://nfc/pair')) {
         await handleNfcUrl(event.url);
       }
     };
-    
+
     // Handle initial URL (app opened via NFC)
     Linking.getInitialURL().then((url) => {
       if (url && url.startsWith('beatit://nfc/pair')) {
         handleNfcUrl(url);
       }
     });
-    
+
     // Handle URL while app is running
     const subscription = Linking.addEventListener('url', handleUrl);
-    
+
     return () => {
       subscription.remove();
     };
   }, [handleNfcUrl]);
-  
+
   /**
    * Check NFC status
    */
   const checkNfcStatus = useCallback(async () => {
     if (!nfcSupported) return;
-    
+
     const enabled = await isNfcEnabled();
     setNfcEnabled(enabled);
   }, [nfcSupported]);
-  
+
   /**
    * Open NFC settings
    */
@@ -353,14 +353,14 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       Alert.alert('Error', 'Failed to open NFC settings');
     }
   }, []);
-  
+
   /**
    * Play song from NFC payload
    */
   const playSongFromNfc = useCallback(async (payload: NfcPayload) => {
     try {
       const song = await findSongById(payload.songId);
-      
+
       if (!song) {
         Alert.alert(
           'Song Not Available',
@@ -369,10 +369,10 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
         return;
       }
-      
+
       // Play the song
       await playSong(song);
-      
+
       // Show confirmation
       Alert.alert(
         '🎵 Playing Shared Song',
@@ -384,13 +384,13 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       Alert.alert('Error', 'Failed to play the shared song');
     }
   }, [findSongById, playSong]);
-  
+
   /**
    * Handle NFC tag received (guest side)
    */
   const onNfcTagReceived = useCallback(async (payload: NfcPayload) => {
     setLastReceivedPayload(payload);
-    
+
     if (autoAcceptNfc) {
       // Auto-play without confirmation
       await playSongFromNfc(payload);
@@ -402,8 +402,8 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         type: 'info',
         buttons: [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Play', 
+          {
+            text: 'Play',
             style: 'default',
             onPress: async () => {
               await playSongFromNfc(payload);
@@ -413,7 +413,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
   }, [autoAcceptNfc, playSongFromNfc, showAlert]);
-  
+
   /**
    * Enable NFC listener (guest side)
    */
@@ -427,7 +427,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return;
     }
-    
+
     if (!nfcEnabled) {
       showAlert({
         title: 'NFC Disabled',
@@ -440,7 +440,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return;
     }
-    
+
     try {
       await startNfcListener(onNfcTagReceived);
       setNfcListening(true);
@@ -455,7 +455,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
   }, [nfcSupported, nfcEnabled, onNfcTagReceived, openNfcSettingsApp, showAlert]);
-  
+
   /**
    * Disable NFC listener
    */
@@ -468,7 +468,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Failed to disable NFC listener:', error);
     }
   }, []);
-  
+
   /**
    * Share song via NFC (host side)
    */
@@ -482,11 +482,11 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return;
     }
-    
+
     // Re-check NFC status in real-time
     const currentlyEnabled = await isNfcEnabled();
     console.log('NFC currently enabled:', currentlyEnabled);
-    
+
     if (!currentlyEnabled) {
       setNfcEnabled(false);
       showAlert({
@@ -500,42 +500,42 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       return;
     }
-    
+
     // Update state if it was stale
     if (!nfcEnabled) {
       setNfcEnabled(true);
     }
-    
+
     // Store listener state to restore it later
     const wasListening = nfcListening;
-    
+
     try {
       console.log('Starting NFC write operation for song:', songId);
       setShareState('waiting');
-      
+
       // CRITICAL: Stop the NFC listener before writing
       // NFC Manager can only handle one operation at a time
       if (wasListening) {
         console.log('Temporarily stopping NFC listener for write operation...');
         await stopNfcListener();
         setNfcListening(false);
-        
+
         // Wait a bit to ensure the listener is fully released
         console.log('Waiting for NFC to be fully released...');
         await new Promise(resolve => setTimeout(resolve, 300));
       }
-      
+
       // Now write the payload
       await writeNfcPayload(songId);
-      
+
       console.log('NFC write successful');
       setShareState('success');
-      
+
       // Reset state after 2 seconds
       setTimeout(() => {
         setShareState('idle');
       }, 2000);
-      
+
       showAlert({
         title: 'Ready to Share!',
         message: 'Hold another NFC-enabled device close to the back of this phone to share this song.',
@@ -546,13 +546,13 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Failed to share via NFC:', error);
       console.error('Error details:', JSON.stringify(error));
       console.error('Error constructor name:', error?.constructor?.name);
-      
+
       // Check if operation was cancelled by user
       const wasCancelled = error?.constructor?.name === 'UserCancel' ||
-                          error?.message?.includes('cancelled') || 
-                          error?.message?.includes('cancel') ||
-                          error?.toString()?.toLowerCase()?.includes('cancel');
-      
+        error?.message?.includes('cancelled') ||
+        error?.message?.includes('cancel') ||
+        error?.toString()?.toLowerCase()?.includes('cancel');
+
       if (wasCancelled) {
         console.log('NFC operation was cancelled by user - no error alert needed');
         setShareState('cancelled');
@@ -561,17 +561,17 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, 1000);
         return; // Don't show error alert for user cancellation
       }
-      
+
       // Show error state for actual errors
       setShareState('error');
-      
+
       setTimeout(() => {
         setShareState('idle');
       }, 2000);
-      
+
       // Show more specific error message
       let errorMessage = 'Failed to initiate NFC sharing. ';
-      
+
       if (error?.message?.includes('not supported')) {
         errorMessage += 'You may be using Expo Go. Please build a development build.';
       } else if (error?.message?.includes('timeout')) {
@@ -581,7 +581,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } else {
         errorMessage += 'Make sure:\n\n1. NFC is enabled in Settings\n2. No other apps are using NFC\n3. You built a development build (not Expo Go)';
       }
-      
+
       showAlert({
         title: 'NFC Error',
         message: errorMessage,
@@ -602,7 +602,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
   }, [nfcSupported, nfcEnabled, nfcListening, onNfcTagReceived, openNfcSettingsApp, showAlert]);
-  
+
   /**
    * Cancel NFC share operation
    */
@@ -610,7 +610,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await cancelNfcOperation();
       setShareState('cancelled');
-      
+
       setTimeout(() => {
         setShareState('idle');
       }, 1000);
@@ -618,7 +618,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error('Failed to cancel NFC operation:', error);
     }
   }, []);
-  
+
   /**
    * Set auto-accept NFC setting
    */
@@ -626,7 +626,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAutoAcceptNfcState(enabled);
     await AsyncStorage.setItem(NFC_AUTO_ACCEPT_KEY, enabled.toString());
   }, []);
-  
+
   const value: NfcContextType = {
     nfcSupported,
     nfcEnabled,
@@ -643,7 +643,7 @@ export const NfcProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     openNfcSettingsApp,
     handleNfcUrl,
   };
-  
+
   return (
     <NfcContext.Provider value={value}>
       {children}

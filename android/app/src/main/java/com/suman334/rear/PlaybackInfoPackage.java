@@ -1,19 +1,18 @@
-package com.anonymous.beatit;
+package com.suman334.rear;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ViewManager;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ContentUriCopyPackage implements ReactPackage {
+public class PlaybackInfoPackage implements ReactPackage {
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
         List<NativeModule> modules = new ArrayList<>();
-        modules.add(new ContentUriCopyModule(reactContext));
+        modules.add(new PlaybackInfoModule(reactContext));
         return modules;
     }
 

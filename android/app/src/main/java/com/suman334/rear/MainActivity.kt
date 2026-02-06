@@ -1,4 +1,4 @@
-package com.anonymous.beatit
+package com.suman334.rear
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.content.Intent

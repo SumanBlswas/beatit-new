@@ -45,9 +45,26 @@ export default function VideoPlayer({
   onNext,
   onPrevious,
 }: VideoPlayerProps) {
+  // Early return if not visible or no video URI to prevent unnecessary renders
+  if (!visible || !videoUri || videoUri.trim() === '') {
+    return null;
+  }
+
+  console.log("[expo-prev VideoPlayer] Received videoUri:", videoUri);
+  console.log("[expo-prev VideoPlayer] URI substring:", videoUri.substring(0, 100));
+
   const player = useVideoPlayer(videoUri, (player) => {
+    console.log("[expo-prev VideoPlayer] Player callback - playing video");
     player.loop = false;
     player.play();
+
+    setTimeout(() => {
+      console.log("[expo-prev VideoPlayer] Player state:", {
+        playing: player.playing,
+        status: (player as any).status,
+        error: (player as any).error,
+      });
+    }, 500);
   });
 
   const [showControls, setShowControls] = useState(true);
@@ -67,7 +84,7 @@ export default function VideoPlayer({
   const [selectedSubtitle, setSelectedSubtitle] = useState<number>(-1);
   const [availableAudioTracks, setAvailableAudioTracks] = useState<any[]>([]);
   const [selectedAudioTrack, setSelectedAudioTrack] = useState<number>(0);
-  
+
   // Store original track references
   const originalAudioTracks = useRef<any[]>([]);
   const originalSubtitleTracks = useRef<any[]>([]);
@@ -105,7 +122,7 @@ export default function VideoPlayer({
     setIsRecognizing(false);
     isStartingRecognition.current = false;
     console.log("Speech recognition ended - attempting to restart if enabled");
-    
+
     // Auto-restart if live subtitles are still enabled
     if (shouldKeepAlive.current && liveSubtitlesEnabled) {
       console.log("Keep-alive restart triggered...");
@@ -133,18 +150,18 @@ export default function VideoPlayer({
 
   useSpeechRecognitionEvent("result", (event) => {
     console.log("Speech recognition result event:", JSON.stringify(event, null, 2));
-    
+
     // Handle both interim and final results
     const results = event.results;
     if (results && results.length > 0) {
       const latestResult = results[results.length - 1];
       const transcript = latestResult?.transcript;
-      
+
       console.log("Transcript received:", transcript);
-      
+
       if (transcript) {
         setLiveSubtitleText(transcript);
-        
+
         // Clear subtitle after 5 seconds of no new speech (increased from 3)
         if (recognitionTimeoutRef.current) {
           clearTimeout(recognitionTimeoutRef.current);
@@ -160,7 +177,7 @@ export default function VideoPlayer({
 
   useSpeechRecognitionEvent("error", (event) => {
     console.error("Speech recognition error:", event.error);
-    
+
     // Handle no-speech errors gracefully
     if (event.error === "no-speech") {
       const now = Date.now();
@@ -265,7 +282,7 @@ export default function VideoPlayer({
       if (visible) {
         ScreenOrientation.lockAsync(
           ScreenOrientation.OrientationLock.PORTRAIT
-        ).catch(() => {});
+        ).catch(() => { });
         setIsLandscape(false);
         baseScale.current = 1;
         setCurrentZoom(1);
@@ -385,7 +402,7 @@ export default function VideoPlayer({
 
     try {
       isStartingRecognition.current = true;
-      
+
       console.log("Requesting microphone permissions...");
       const result = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       if (!result.granted) {
@@ -409,11 +426,11 @@ export default function VideoPlayer({
         continuous: true,
         requiresOnDeviceRecognition: false,
       });
-      
+
       setLiveSubtitlesEnabled(true);
       shouldKeepAlive.current = true; // Enable keep-alive
       console.log("Live subtitles started successfully with keep-alive");
-      
+
       // Set up a periodic check to ensure recognition stays active
       if (keepAliveIntervalRef.current) {
         clearInterval(keepAliveIntervalRef.current);
@@ -448,13 +465,13 @@ export default function VideoPlayer({
 
     try {
       shouldKeepAlive.current = false; // Disable keep-alive
-      
+
       // Clear keep-alive interval
       if (keepAliveIntervalRef.current) {
         clearInterval(keepAliveIntervalRef.current);
         keepAliveIntervalRef.current = null;
       }
-      
+
       await ExpoSpeechRecognitionModule.stop();
       setLiveSubtitlesEnabled(false);
       setLiveSubtitleText("");
@@ -519,13 +536,13 @@ export default function VideoPlayer({
 
   const handleDoubleTapSeek = useCallback((side: 'left' | 'right') => {
     const seekAmount = 10;
-    const newTime = side === 'left' 
+    const newTime = side === 'left'
       ? Math.max(0, player.currentTime - seekAmount)
       : Math.min(duration, player.currentTime + seekAmount);
-    
+
     player.currentTime = newTime;
     setCurrentTime(newTime);
-    
+
     // Show feedback
     setShowSeekFeedback({ side, timestamp: Date.now() });
     setTimeout(() => setShowSeekFeedback(null), 800);
@@ -539,14 +556,14 @@ export default function VideoPlayer({
 
   const handleClose = async () => {
     player.pause();
-    
+
     // Stop speech recognition if active and clear keep-alive
     shouldKeepAlive.current = false;
     if (keepAliveIntervalRef.current) {
       clearInterval(keepAliveIntervalRef.current);
       keepAliveIntervalRef.current = null;
     }
-    
+
     if (isRecognizing) {
       try {
         await ExpoSpeechRecognitionModule.stop();
@@ -554,7 +571,7 @@ export default function VideoPlayer({
         console.log("Error stopping speech recognition:", e);
       }
     }
-    
+
     if (isLandscape) {
       await ScreenOrientation.lockAsync(
         ScreenOrientation.OrientationLock.PORTRAIT
@@ -622,7 +639,7 @@ export default function VideoPlayer({
       } else {
         // Use the original track object from player
         const originalTrack = originalSubtitleTracks.current[index];
-        
+
         if (originalTrack) {
           console.log(
             `Switching to subtitle track ${index}: ${availableSubtitles[index]?.label}`
@@ -654,7 +671,7 @@ export default function VideoPlayer({
         );
         player.audioTrack = originalTrack;
         setSelectedAudioTrack(index);
-        
+
         // Auto-enable matching subtitle track for the new audio language
         const newAudioLanguage = originalTrack.language;
         if (newAudioLanguage && availableSubtitles.length > 0) {
@@ -695,7 +712,7 @@ export default function VideoPlayer({
         if (audioTrackSource && audioTrackSource.length > 0) {
           // Store original tracks
           originalAudioTracks.current = Array.from(audioTrackSource);
-          
+
           audioTracks = audioTrackSource.map((track: any, index: number) => ({
             ...track,
             index: index,
@@ -716,7 +733,7 @@ export default function VideoPlayer({
         if (subtitleSource && subtitleSource.length > 0) {
           // Store original tracks
           originalSubtitleTracks.current = Array.from(subtitleSource);
-          
+
           subtitleTracks = subtitleSource.map((track: any, index: number) => ({
             ...track,
             index: index,
@@ -738,7 +755,7 @@ export default function VideoPlayer({
 
         // --- Find matching audio track by comparing language ---
         const currentAudio = player.audioTrack;
-        
+
         // Auto-enable subtitle track that matches current audio language
         if (currentAudio && subtitleTracks.length > 0) {
           const matchingSubtitle = subtitleTracks.find(
@@ -752,7 +769,7 @@ export default function VideoPlayer({
           }
         }
 
-        
+
         if (currentAudio && audioTracks.length > 0) {
           const matchingTrack = audioTracks.find(
             (t) => t.language === currentAudio.language
@@ -806,12 +823,12 @@ export default function VideoPlayer({
   useEffect(() => {
     return () => {
       shouldKeepAlive.current = false;
-      
+
       if (keepAliveIntervalRef.current) {
         clearInterval(keepAliveIntervalRef.current);
         keepAliveIntervalRef.current = null;
       }
-      
+
       if (isRecognizing) {
         try {
           ExpoSpeechRecognitionModule.stop();
@@ -819,7 +836,7 @@ export default function VideoPlayer({
           // Ignore cleanup errors
         }
       }
-      
+
       if (recognitionTimeoutRef.current) {
         clearTimeout(recognitionTimeoutRef.current);
       }
@@ -835,18 +852,18 @@ export default function VideoPlayer({
           StatusBar.setHidden(true, 'none');
           StatusBar.setBackgroundColor('transparent', false);
           StatusBar.setTranslucent(true);
-          
+
           // Use expo-navigation-bar to hide navigation bar and gestures
           await NavigationBar.setVisibilityAsync('hidden');
           await NavigationBar.setBehaviorAsync('overlay-swipe');
           await NavigationBar.setBackgroundColorAsync('#00000000'); // Transparent
-          
+
           console.log("Navigation bar hidden successfully");
         } catch (error) {
           console.log("Error hiding system UI:", error);
         }
       };
-      
+
       hideSystemUI();
     }
 
@@ -855,8 +872,8 @@ export default function VideoPlayer({
         // Restore navigation bar on cleanup
         StatusBar.setHidden(false, 'fade');
         StatusBar.setTranslucent(false);
-        NavigationBar.setVisibilityAsync('visible').catch(() => {});
-        NavigationBar.setBackgroundColorAsync('#000000').catch(() => {});
+        NavigationBar.setVisibilityAsync('visible').catch(() => { });
+        NavigationBar.setBackgroundColorAsync('#000000').catch(() => { });
       }
     };
   }, [visible]);
@@ -923,7 +940,7 @@ export default function VideoPlayer({
                 height: isVideoLandscape
                   ? Dimensions.get("window").height
                   : Dimensions.get("window").width /
-                    (videoAspectRatio || 9 / 16),
+                  (videoAspectRatio || 9 / 16),
                 // --- FIX 5: Apply zoom to fix unused variable error ---
                 transform: [{ scale: currentZoom }],
               }}
@@ -938,10 +955,10 @@ export default function VideoPlayer({
               styles.seekFeedback,
               showSeekFeedback.side === 'left' ? styles.seekFeedbackLeft : styles.seekFeedbackRight
             ]}>
-              <FontAwesome 
-                name={showSeekFeedback.side === 'left' ? 'backward' : 'forward'} 
-                size={40} 
-                color="rgba(255, 255, 255, 0.9)" 
+              <FontAwesome
+                name={showSeekFeedback.side === 'left' ? 'backward' : 'forward'}
+                size={40}
+                color="rgba(255, 255, 255, 0.9)"
               />
               <Text style={styles.seekFeedbackText}>10s</Text>
             </View>
@@ -1050,7 +1067,7 @@ export default function VideoPlayer({
                               style={[
                                 styles.settingToggleThumb,
                                 subtitlesEnabled &&
-                                  styles.settingToggleThumbActive,
+                                styles.settingToggleThumbActive,
                               ]}
                             />
                           </View>
@@ -1152,7 +1169,7 @@ export default function VideoPlayer({
                               style={[
                                 styles.settingToggleThumb,
                                 liveSubtitlesEnabled &&
-                                  styles.settingToggleThumbActive,
+                                styles.settingToggleThumbActive,
                               ]}
                             />
                           </View>

@@ -45,14 +45,14 @@ const useAnimatedBandStyle = (sharedValue: Animated.SharedValue<number>) => {
       backgroundColor: isPositive
         ? "#00ff88"
         : sharedValue.value < 0
-        ? "#ff0088"
-        : "#666",
+          ? "#ff0088"
+          : "#666",
       borderWidth: 2,
       borderColor: isPositive
         ? "#00ffaa"
         : sharedValue.value < 0
-        ? "#ff00aa"
-        : "#888",
+          ? "#ff00aa"
+          : "#888",
       elevation: 5,
       shadowColor: isPositive ? "#00ff88" : "#ff0088",
       shadowOpacity: 0.7 + intensity * 0.3,
@@ -225,14 +225,14 @@ const Equalizer: React.FC = () => {
       profile === "BassBoost"
         ? "BASS"
         : profile === "TrebleBoost"
-        ? "TREBLE"
-        : profile === "VocalBoost"
-        ? "VOCAL"
-        : profile === "Custom"
-        ? "CUSTOM"
-        : profile === "Signature"
-        ? "SIGNATURE"
-        : profile.toUpperCase();
+          ? "TREBLE"
+          : profile === "VocalBoost"
+            ? "VOCAL"
+            : profile === "Custom"
+              ? "CUSTOM"
+              : profile === "Signature"
+                ? "SIGNATURE"
+                : profile.toUpperCase();
 
     return (
       <TouchableOpacity
@@ -276,7 +276,7 @@ const Equalizer: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" />
 
       <Animated.View style={[styles.backgroundGradient, backgroundStyle]}>
         <View style={styles.orb1} />
@@ -367,8 +367,8 @@ const Equalizer: React.FC = () => {
                           tempGains[index] > 0
                             ? "#00ff88"
                             : tempGains[index] < 0
-                            ? "#ff0088"
-                            : "#666",
+                              ? "#ff0088"
+                              : "#666",
                         fontWeight: tempGains[index] !== 0 ? "bold" : "normal",
                       },
                     ]}

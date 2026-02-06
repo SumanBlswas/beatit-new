@@ -1,6 +1,7 @@
 import { BeautifulAlert } from "@/components/BeautifulAlert";
 import { ConfirmTypedModal } from "@/components/ConfirmTypedModal";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { on as eventOn } from "@/utils/eventBus";
 import {
@@ -17,6 +18,7 @@ import { BlurView } from "expo-blur";
 import * as FileSystem from "expo-file-system";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
+import * as Sharing from "expo-sharing";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -50,7 +52,7 @@ const UPDATE_CHECK_KEY = "last_update_check";
 
 function getTodayDateString() {
   const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 }
 
 async function fetchLatestVersion() {
@@ -74,6 +76,7 @@ export default function AccountScreen() {
   } = useAuth();
   const router = useRouter();
   const { signIn: googleSignIn, loading: googleLoading } = useGoogleSignIn();
+  const { theme, toggleTheme, mode, setMode } = useTheme();
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -83,6 +86,8 @@ export default function AccountScreen() {
   const [showImagePickerModal, setShowImagePickerModal] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showLyricsModal, setShowLyricsModal] = useState(false);
+  const [cachedLyricsInfo, setCachedLyricsInfo] = useState({ total: 0, synced: 0 });
   const [editName, setEditName] = useState("");
   const [loading, setLoading] = useState(false);
   const [settings, setSettings] = useState<AppSettings>({
@@ -96,39 +101,39 @@ export default function AccountScreen() {
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
   const [updateStatus, setUpdateStatus] = useState<string>("Checking...");
   const [checkingUpdate, setCheckingUpdate] = useState(false);
-    // --- Check for updates (manual & daily) ---
-    const checkForUpdate = useCallback(async (manual = false) => {
-      setCheckingUpdate(true);
-      const latest = await fetchLatestVersion();
-      setLatestVersion(latest);
-      if (!latest) {
-        setUpdateStatus("Could not check");
-      } else if (latest === APP_VERSION) {
-        setUpdateStatus("Up to date");
-      } else {
-        setUpdateStatus(`Update available: v${latest}`);
-      }
-      setCheckingUpdate(false);
-      // Store last check date
-      if (!manual) await AsyncStorage.setItem(UPDATE_CHECK_KEY, getTodayDateString());
-    }, []);
+  // --- Check for updates (manual & daily) ---
+  const checkForUpdate = useCallback(async (manual = false) => {
+    setCheckingUpdate(true);
+    const latest = await fetchLatestVersion();
+    setLatestVersion(latest);
+    if (!latest) {
+      setUpdateStatus("Could not check");
+    } else if (latest === APP_VERSION) {
+      setUpdateStatus("Up to date");
+    } else {
+      setUpdateStatus(`Update available: v${latest}`);
+    }
+    setCheckingUpdate(false);
+    // Store last check date
+    if (!manual) await AsyncStorage.setItem(UPDATE_CHECK_KEY, getTodayDateString());
+  }, []);
 
-    // --- Auto check once per day ---
-    useEffect(() => {
-      (async () => {
-        const lastCheck = await AsyncStorage.getItem(UPDATE_CHECK_KEY);
-        if (lastCheck !== getTodayDateString()) {
-          await checkForUpdate();
-        } else {
-          // If already checked today, just show status
-          const latest = await fetchLatestVersion();
-          setLatestVersion(latest);
-          if (!latest) setUpdateStatus("Could not check");
-          else if (latest === APP_VERSION) setUpdateStatus("Up to date");
-          else setUpdateStatus(`Update available: v${latest}`);
-        }
-      })();
-    }, []);
+  // --- Auto check once per day ---
+  useEffect(() => {
+    (async () => {
+      const lastCheck = await AsyncStorage.getItem(UPDATE_CHECK_KEY);
+      if (lastCheck !== getTodayDateString()) {
+        await checkForUpdate();
+      } else {
+        // If already checked today, just show status
+        const latest = await fetchLatestVersion();
+        setLatestVersion(latest);
+        if (!latest) setUpdateStatus("Could not check");
+        else if (latest === APP_VERSION) setUpdateStatus("Up to date");
+        else setUpdateStatus(`Update available: v${latest}`);
+      }
+    })();
+  }, []);
   const avatarScale = useSharedValue(0.5);
   const avatarTranslateX = useSharedValue(0);
   const avatarTranslateY = useSharedValue(0);
@@ -495,34 +500,34 @@ export default function AccountScreen() {
     showChevron = true,
     rightElement,
   }) => (
-    <TouchableOpacity
-      style={styles.menuItem}
-      onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-      disabled={!onPress}
-    >
-      <View style={styles.menuItemLeft}>
-        <View style={styles.menuIconContainer}>
-          <LinearGradient
-            colors={["#6366f1", "#8b5cf6"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.menuIconGradient}
-          >
-            <FontAwesome name={icon as any} size={18} color="#fff" />
-          </LinearGradient>
+      <TouchableOpacity
+        style={styles.menuItem}
+        onPress={onPress}
+        activeOpacity={onPress ? 0.7 : 1}
+        disabled={!onPress}
+      >
+        <View style={styles.menuItemLeft}>
+          <View style={styles.menuIconContainer}>
+            <LinearGradient
+              colors={["#6366f1", "#8b5cf6"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.menuIconGradient}
+            >
+              <FontAwesome name={icon as any} size={18} color="#fff" />
+            </LinearGradient>
+          </View>
+          <View style={styles.menuTextContainer}>
+            <Text style={styles.menuTitle}>{title}</Text>
+            {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+          </View>
         </View>
-        <View style={styles.menuTextContainer}>
-          <Text style={styles.menuTitle}>{title}</Text>
-          {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-        </View>
-      </View>
-      {rightElement ||
-        (showChevron && (
-          <FontAwesome name="chevron-right" size={16} color="#666" />
-        ))}
-    </TouchableOpacity>
-  );
+        {rightElement ||
+          (showChevron && (
+            <FontAwesome name="chevron-right" size={16} color="#666" />
+          ))}
+      </TouchableOpacity>
+    );
 
   return (
     <View style={styles.container}>
@@ -645,7 +650,7 @@ export default function AccountScreen() {
             <MenuItem
               icon="moon-o"
               title="App Theme"
-              subtitle={`Current: ${settings.theme}`}
+              subtitle={`${theme === 'dark' ? 'Dark' : 'Light'} • ${mode === 'auto' ? 'Auto' : mode === 'reverse' ? 'Reverse' : 'Manual'}`}
               onPress={() => setShowThemeModal(true)}
             />
 
@@ -691,6 +696,26 @@ export default function AccountScreen() {
               title="Export Account Data"
               subtitle="Download your data as JSON"
               onPress={handleExportData}
+            />
+
+            <MenuItem
+              icon="music"
+              title="Download All Lyrics"
+              subtitle="Export synced lyrics for offline use"
+              onPress={async () => {
+                try {
+                  setLoading(true);
+                  const { getCachedLyricsCount, getSyncedLyricsCount } = await import('@/services/lyricsCache');
+                  const count = await getCachedLyricsCount();
+                  const syncedCount = await getSyncedLyricsCount();
+                  setCachedLyricsInfo({ total: count, synced: syncedCount });
+                  setShowLyricsModal(true);
+                } catch (e) {
+                  console.error('Lyrics info error:', e);
+                } finally {
+                  setLoading(false);
+                }
+              }}
             />
 
             <MenuItem
@@ -819,6 +844,151 @@ export default function AccountScreen() {
         ]}
         onClose={() => setShowSupportModal(false)}
       />
+
+      {/* Cached Lyrics Modal */}
+      <BeautifulAlert
+        visible={showLyricsModal}
+        title="Cached Lyrics"
+        message={`Total cached: ${cachedLyricsInfo.total} songs\nSynced (timestamped): ${cachedLyricsInfo.synced} songs\n\nOnly synced lyrics can be exported.`}
+        type="info"
+        buttons={[
+          {
+            text: "Clear",
+            onPress: async () => {
+              setShowLyricsModal(false);
+              const { clearAllCachedLyrics } = await import('@/services/lyricsCache');
+              await clearAllCachedLyrics();
+              setCachedLyricsInfo({ total: 0, synced: 0 });
+            },
+            style: "destructive",
+          },
+          {
+            text: `Export`,
+            onPress: async () => {
+              setShowLyricsModal(false);
+              if (cachedLyricsInfo.synced === 0) {
+                return;
+              }
+              try {
+                const { exportAllCachedLyrics } = await import('@/services/lyricsCache');
+                const allLyrics = await exportAllCachedLyrics();
+                const filename = `beatit_synced_lyrics_${Date.now()}.json`;
+                const path = `${FileSystem.documentDirectory}${filename}`;
+                await FileSystem.writeAsStringAsync(path, JSON.stringify(allLyrics, null, 2));
+                if (await Sharing.isAvailableAsync()) {
+                  await Sharing.shareAsync(path, {
+                    mimeType: 'application/json',
+                    dialogTitle: 'Export Synced Lyrics',
+                  });
+                } else {
+                  await Share.share({
+                    message: JSON.stringify(allLyrics, null, 2),
+                    title: 'BeatIt Synced Lyrics',
+                  });
+                }
+              } catch (exportError) {
+                console.error('Export error:', exportError);
+              }
+            },
+            style: "default",
+          },
+          {
+            text: "Cancel",
+            onPress: () => setShowLyricsModal(false),
+            style: "cancel",
+          },
+        ]}
+        onClose={() => setShowLyricsModal(false)}
+      />
+
+      {/* Theme Settings Modal */}
+      <Modal
+        visible={showThemeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowThemeModal(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' }}
+          onPress={() => setShowThemeModal(false)}
+        >
+          <Pressable
+            style={{ backgroundColor: '#1a1a1a', borderRadius: 20, padding: 24, width: '85%', maxWidth: 360 }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }}>
+              App Theme
+            </Text>
+
+            {/* Theme Toggle */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ color: '#aaa', fontSize: 14, marginBottom: 10 }}>Appearance</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  onPress={() => { if (theme === 'light') return; toggleTheme(); }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme === 'dark' ? '#ff0066' : '#333',
+                    padding: 14,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                  }}
+                >
+                  <FontAwesome name="moon-o" size={20} color="#fff" />
+                  <Text style={{ color: '#fff', marginTop: 6, fontWeight: theme === 'dark' ? 'bold' : 'normal' }}>Dark</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => { if (theme === 'dark') return; toggleTheme(); }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: theme === 'light' ? '#ff0066' : '#333',
+                    padding: 14,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                  }}
+                >
+                  <FontAwesome name="sun-o" size={20} color="#fff" />
+                  <Text style={{ color: '#fff', marginTop: 6, fontWeight: theme === 'light' ? 'bold' : 'normal' }}>Light</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Mode Selection */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ color: '#aaa', fontSize: 14, marginBottom: 10 }}>Mode</Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {(['manual', 'auto', 'reverse'] as const).map((m) => (
+                  <TouchableOpacity
+                    key={m}
+                    onPress={() => setMode(m)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: mode === m ? '#6366f1' : '#333',
+                      padding: 12,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: mode === m ? 'bold' : 'normal', textTransform: 'capitalize' }}>
+                      {m}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={{ color: '#666', fontSize: 11, marginTop: 8, textAlign: 'center' }}>
+                {mode === 'manual' ? 'Use selected theme' : mode === 'auto' ? 'Match environment lighting' : 'Opposite of environment'}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowThemeModal(false)}
+              style={{ backgroundColor: '#333', padding: 14, borderRadius: 12, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Done</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Edit Profile Modal */}
       <Modal

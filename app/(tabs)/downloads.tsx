@@ -1,11 +1,12 @@
 import VideoPlayer from "@/components/VideoPlayer";
 import { useCurrentSong, useIsPlaying, usePlayer } from "@/context/PlayerContext";
 import { ApiSong } from "@/services/apiTypes";
+import { copyContentUriToCache, extractAudioMetadata } from "@/services/contentUriCopy";
 import {
-    deleteDownloadedSong,
-    formatBytes,
-    getDownloadedSongs,
-    getTotalDownloadSize,
+  deleteDownloadedSong,
+  formatBytes,
+  getDownloadedSongs,
+  getTotalDownloadSize,
 } from "@/services/downloadService";
 import { useNetworkStatus } from "@/services/networkService";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -16,20 +17,21 @@ import * as MediaLibrary from "expo-media-library";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TrackPlayer from "react-native-track-player";
 
 // Animated scrolling text component for long titles
 const ScrollingText = ({ text, style }: { text: string; style: any }) => {
@@ -41,7 +43,7 @@ const ScrollingText = ({ text, style }: { text: string; style: any }) => {
     if (textWidth > containerWidth && containerWidth > 0) {
       // Text is longer than container, start animation
       const duration = (textWidth + containerWidth) * 30; // Adjust speed here
-      
+
       Animated.loop(
         Animated.sequence([
           Animated.delay(1000), // Wait 1 second before starting
@@ -97,7 +99,7 @@ export default function DownloadsScreen() {
   const [pageMode, setPageMode] = useState<'downloads' | 'local'>('downloads');
   const scrollViewRef = React.useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
-  
+
   // Local files states
   const [localTab, setLocalTab] = useState<"audio" | "video">("audio");
   const [audioFiles, setAudioFiles] = useState<MediaLibrary.Asset[]>([]);
@@ -105,7 +107,7 @@ export default function DownloadsScreen() {
   const [mediaPermission, setMediaPermission] = useState<boolean>(false);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<{ uri: string; title: string; width?: number; height?: number } | null>(null);
-  
+
   // Selection mode states
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedSongs, setSelectedSongs] = useState<Set<string>>(new Set());
@@ -116,13 +118,12 @@ export default function DownloadsScreen() {
     count: number;
     onConfirm: () => void;
   } | null>(null);
-  
+
   const playerActions = usePlayer();
   const currentSong = useCurrentSong();
   const isPlaying = useIsPlaying();
   const { isOnline } = useNetworkStatus();
   const router = useRouter();
-  const playUriParam = undefined; // no-op placeholder; external play URI handled via AsyncStorage
 
   // Check existing media permissions on mount
   useEffect(() => {
@@ -155,7 +156,7 @@ export default function DownloadsScreen() {
         const info = await FileSystem.getInfoAsync(uri);
         if (!info.exists) {
           Alert.alert('File not found', 'The selected file could not be found on device.');
-          try { router.replace('/(tabs)/downloads'); } catch {}
+          try { router.replace('/(tabs)/downloads'); } catch { }
           return;
         }
 
@@ -171,7 +172,7 @@ export default function DownloadsScreen() {
           }, 50);
 
           setSelectedVideo({ uri, title: uri.split('/').pop() || 'External Video', width: undefined, height: undefined });
-          try { router.replace('/(tabs)/downloads'); } catch {}
+          try { router.replace('/(tabs)/downloads'); } catch { }
         } else {
           // Non-video: hand off to PlayerContext playback
           const tempSong: ApiSong = {
@@ -181,16 +182,16 @@ export default function DownloadsScreen() {
             downloadUrl: [{ link: uri, quality: '320kbps' }],
             localUri: uri,
           } as any;
-          setQueue([tempSong], 0);
+          playerActions.setQueue([tempSong], 0);
           await playerActions.playSong(tempSong);
-          try { router.replace('/(tabs)/downloads'); } catch {}
+          try { router.replace('/(tabs)/downloads'); } catch { }
         }
       } catch (err) {
         console.warn('Failed to handle external_play_uri in downloads page:', err);
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [playerActions, router]);
 
   // Media Library functions
   const requestMediaPermissions = async () => {
@@ -211,12 +212,12 @@ export default function DownloadsScreen() {
   const loadMediaFiles = async () => {
     try {
       setIsLoadingMedia(true);
-      
+
       // Fetch ALL audio files with pagination
       let allAudioFiles: MediaLibrary.Asset[] = [];
       let audioHasNext = true;
       let audioEndCursor: string | undefined = undefined;
-      
+
       while (audioHasNext) {
         const audioMedia = await MediaLibrary.getAssetsAsync({
           mediaType: 'audio',
@@ -229,12 +230,12 @@ export default function DownloadsScreen() {
         audioEndCursor = audioMedia.endCursor;
         console.log(`Audio batch: ${audioMedia.assets.length}, Total so far: ${allAudioFiles.length}, Has next: ${audioHasNext}`);
       }
-      
+
       // Fetch ALL video files with pagination
       let allVideoFiles: MediaLibrary.Asset[] = [];
       let videoHasNext = true;
       let videoEndCursor: string | undefined = undefined;
-      
+
       while (videoHasNext) {
         const videoMedia = await MediaLibrary.getAssetsAsync({
           mediaType: 'video',
@@ -247,12 +248,12 @@ export default function DownloadsScreen() {
         videoEndCursor = videoMedia.endCursor;
         console.log(`Video batch: ${videoMedia.assets.length}, Total so far: ${allVideoFiles.length}, Has next: ${videoHasNext}`);
       }
-      
+
       console.log(`FINAL: Loaded ${allAudioFiles.length} audio files and ${allVideoFiles.length} video files`);
-      
+
       setAudioFiles(allAudioFiles);
       setVideoFiles(allVideoFiles);
-      
+
     } catch (error) {
       console.error("Error loading media files:", error);
     } finally {
@@ -280,16 +281,16 @@ export default function DownloadsScreen() {
       ]);
       setDownloads(downloadedSongs);
       setTotalSize(size);
-      
+
       // Group songs by collection type and name
       const albumGroups: { [key: string]: any[] } = {};
       const playlistGroups: { [key: string]: any[] } = {};
       const singles: any[] = [];
-      
+
       downloadedSongs.forEach((song: any) => {
         const collectionType = song.collectionType || 'individual';
         const collectionName = song.collectionName || song.album?.name || "Unknown Album";
-        
+
         if (collectionType === 'album') {
           if (!albumGroups[collectionName]) {
             albumGroups[collectionName] = [];
@@ -304,7 +305,7 @@ export default function DownloadsScreen() {
           singles.push(song);
         }
       });
-      
+
       // Convert groups to arrays
       const completeAlbums: { name: string; songs: any[]; artwork: string }[] = [];
       Object.entries(albumGroups).forEach(([albumName, songs]) => {
@@ -316,7 +317,7 @@ export default function DownloadsScreen() {
           });
         }
       });
-      
+
       const completePlaylists: { name: string; songs: any[]; artwork: string }[] = [];
       Object.entries(playlistGroups).forEach(([playlistName, songs]) => {
         if (songs.length > 0) {
@@ -327,11 +328,11 @@ export default function DownloadsScreen() {
           });
         }
       });
-      
+
       setAlbums(completeAlbums);
       setPlaylists(completePlaylists);
       setIndividualSongs(singles);
-      
+
       await loadStorageInfo();
     } catch (error) {
       console.error("Error loading downloads:", error);
@@ -382,7 +383,7 @@ export default function DownloadsScreen() {
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedSongs.size === 0) return;
-    
+
     setDeleteModalData({
       type: 'multiple',
       title: `Delete ${selectedSongs.size} Songs`,
@@ -447,12 +448,28 @@ export default function DownloadsScreen() {
     [loadDownloads]
   );
 
+  // In downloads.tsx, update handlePlay function:
   const handlePlay = useCallback(
     async (song: ApiSong, index: number) => {
       try {
-        // Set downloads as queue and play
+        // Prepare offline queue with decrypted URLs for current and nearby songs
+        const preparedQueue = await playerActions.prepareOfflineQueue(downloads, index);
+
+        // Reset TrackPlayer and add prepared queue
+        await TrackPlayer.reset();
+        await TrackPlayer.add(preparedQueue);
+
+        // Skip to the selected song
+        if (index > 0) {
+          await TrackPlayer.skip(index);
+        }
+
+        // Update player context state
         playerActions.setQueue(downloads, index);
-        await playerActions.playSong(song);
+
+        // Start playback
+        await TrackPlayer.play();
+
       } catch (error) {
         console.error("Error playing downloaded song:", error);
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -465,18 +482,26 @@ export default function DownloadsScreen() {
   const handlePlayLocalAudio = useCallback(
     async (audio: MediaLibrary.Asset, index: number) => {
       try {
-        // Convert MediaLibrary.Asset to ApiSong format
+        // Extract metadata from audio file
+        let extractedMetadata = null;
+        try {
+          extractedMetadata = await extractAudioMetadata(audio.uri);
+        } catch (metadataError) {
+          console.warn("Failed to extract metadata, using defaults:", metadataError);
+        }
+
+        // Convert MediaLibrary.Asset to ApiSong format with extracted metadata
         const localSong: ApiSong = {
           id: audio.id,
-          name: audio.filename.replace(/\.[^/.]+$/, ""),
-          title: audio.filename.replace(/\.[^/.]+$/, ""),
-          album: { 
+          name: extractedMetadata?.title || audio.filename.replace(/\.[^/.]+$/, ""),
+          title: extractedMetadata?.title || audio.filename.replace(/\.[^/.]+$/, ""),
+          album: {
             id: "local",
-            name: "Local Files",
+            name: extractedMetadata?.album || "Local Files",
             url: ""
           },
-          primaryArtists: "Unknown Artist",
-          image: [], // No image for local audio
+          primaryArtists: extractedMetadata?.artist || "Unknown Artist",
+          image: extractedMetadata?.albumArtPath ? [{ link: extractedMetadata.albumArtPath, quality: "500x500" }] : [],
           downloadUrl: [{ link: audio.uri, quality: "320kbps" }],
           duration: Math.floor(audio.duration).toString(),
           year: new Date(audio.creationTime).getFullYear().toString(),
@@ -486,26 +511,36 @@ export default function DownloadsScreen() {
           url: audio.uri,
         };
 
-        // Convert all audio files to ApiSong format for queue
-        const localAudioQueue: ApiSong[] = audioFiles.map((file) => ({
-          id: file.id,
-          name: file.filename.replace(/\.[^/.]+$/, ""),
-          title: file.filename.replace(/\.[^/.]+$/, ""),
-          album: { 
-            id: "local",
-            name: "Local Files",
-            url: ""
-          },
-          primaryArtists: "Unknown Artist",
-          image: [],
-          downloadUrl: [{ link: file.uri, quality: "320kbps" }],
-          duration: Math.floor(file.duration).toString(),
-          year: new Date(file.creationTime).getFullYear().toString(),
-          dominantColor: "#ff0066",
-          explicitContent: 0,
-          language: "unknown",
-          url: file.uri,
-        }));
+        // Convert all audio files to ApiSong format for queue (with metadata extraction)
+        const localAudioQueue: ApiSong[] = await Promise.all(
+          audioFiles.map(async (file) => {
+            let fileMetadata = null;
+            try {
+              fileMetadata = await extractAudioMetadata(file.uri);
+            } catch {
+              // Ignore metadata extraction errors for queue items
+            }
+            return {
+              id: file.id,
+              name: fileMetadata?.title || file.filename.replace(/\.[^/.]+$/, ""),
+              title: fileMetadata?.title || file.filename.replace(/\.[^/.]+$/, ""),
+              album: {
+                id: "local",
+                name: fileMetadata?.album || "Local Files",
+                url: ""
+              },
+              primaryArtists: fileMetadata?.artist || "Unknown Artist",
+              image: fileMetadata?.albumArtPath ? [{ link: fileMetadata.albumArtPath, quality: "500x500" }] : [],
+              downloadUrl: [{ link: file.uri, quality: "320kbps" }],
+              duration: Math.floor(file.duration).toString(),
+              year: new Date(file.creationTime).getFullYear().toString(),
+              dominantColor: "#ff0066",
+              explicitContent: 0,
+              language: "unknown",
+              url: file.uri,
+            };
+          })
+        );
 
         // Set local audio queue and play
         playerActions.setQueue(localAudioQueue, index);
@@ -540,7 +575,7 @@ export default function DownloadsScreen() {
   const renderSongItem = useCallback(
     ({ item, index }: { item: any; index: number }) => {
       const isSelected = selectedSongs.has(item.id);
-      
+
       return (
         <TouchableOpacity
           style={[
@@ -625,7 +660,7 @@ export default function DownloadsScreen() {
                 </View>
               )}
             </View>
-            
+
             {/* Storage Card */}
             {deviceStorage && (
               <View style={styles.storageCard}>
@@ -639,7 +674,7 @@ export default function DownloadsScreen() {
                     <FontAwesome name="database" size={20} color="#fff" />
                     <Text style={styles.storageTitle}>Storage Usage</Text>
                   </View>
-                  
+
                   <View style={styles.storageStats}>
                     <View style={styles.storageStat}>
                       <Text style={styles.storageLabel}>Downloads</Text>
@@ -656,418 +691,418 @@ export default function DownloadsScreen() {
                       <Text style={styles.storageValue}>{downloads.length}</Text>
                     </View>
                   </View>
-              
-              {/* Storage Bar */}
-              <View style={styles.storageBarContainer}>
-                <View style={styles.storageBar}>
-                  <View 
-                    style={[
-                      styles.storageBarFill, 
-                      { width: `${Math.min((totalSize / deviceStorage.total) * 100, 100)}%` }
-                    ]} 
-                  />
-                </View>
-                <Text style={styles.storagePercentage}>
-                  {((totalSize / deviceStorage.total) * 100).toFixed(1)}% used by app
-                </Text>
+
+                  {/* Storage Bar */}
+                  <View style={styles.storageBarContainer}>
+                    <View style={styles.storageBar}>
+                      <View
+                        style={[
+                          styles.storageBarFill,
+                          { width: `${Math.min((totalSize / deviceStorage.total) * 100, 100)}%` }
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.storagePercentage}>
+                      {((totalSize / deviceStorage.total) * 100).toFixed(1)}% used by app
+                    </Text>
+                  </View>
+                </LinearGradient>
               </View>
-            </LinearGradient>
-          </View>
-        )}
-        
-        {/* Downloads Count */}
-        <View style={styles.headerInfo}>
-          <FontAwesome name="music" size={16} color="#999" />
-          <Text style={styles.headerSubtitle}>
-            {downloads.length} songs downloaded
-          </Text>
-        </View>
-        
-        {/* Tabs */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.tabsScrollContainer}
-          contentContainerStyle={styles.tabsContainer}
-          nestedScrollEnabled={true}
-        >
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "albums" && styles.activeTab]}
-            onPress={() => setActiveTab("albums")}
-          >
-            <FontAwesome 
-              name="folder" 
-              size={18} 
-              color={activeTab === "albums" ? "#ff0066" : "#666"} 
-            />
-            <Text style={[styles.tabText, activeTab === "albums" && styles.activeTabText]}>
-              Albums ({albums.length})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "playlists" && styles.activeTab]}
-            onPress={() => setActiveTab("playlists")}
-          >
-            <FontAwesome 
-              name="list" 
-              size={18} 
-              color={activeTab === "playlists" ? "#ff0066" : "#666"} 
-            />
-            <Text style={[styles.tabText, activeTab === "playlists" && styles.activeTabText]}>
-              Playlists ({playlists.length})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === "songs" && styles.activeTab]}
-            onPress={() => setActiveTab("songs")}
-          >
-            <FontAwesome 
-              name="music" 
-              size={18} 
-              color={activeTab === "songs" ? "#ff0066" : "#666"} 
-            />
-            <Text style={[styles.tabText, activeTab === "songs" && styles.activeTabText]}>
-              Songs ({individualSongs.length})
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+            )}
 
-      {/* Content */}
-      {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#ff0066" />
-          <Text style={styles.emptyText}>Loading downloads...</Text>
-        </View>
-      ) : downloads.length === 0 ? (
-        <View style={styles.centered}>
-          <FontAwesome name="cloud-download" size={64} color="#333" />
-          <Text style={styles.emptyTitle}>No Downloads Yet</Text>
-          <Text style={styles.emptyText}>
-            Downloaded songs will appear here for offline playback
-          </Text>
-        </View>
-      ) : (
-        <>
-          {activeTab === "albums" && (
-            <ScrollView 
-              style={styles.contentContainer}
-              contentContainerStyle={currentSong && { paddingBottom: 100 }}
-            >
-              {albums.length === 0 ? (
-                <View style={styles.emptySection}>
-                  <FontAwesome name="folder-open" size={48} color="#444" />
-                  <Text style={styles.emptySectionText}>No complete albums downloaded</Text>
-                </View>
-              ) : (
-                albums.map((album) => (
-                  <View key={album.name} style={styles.albumCard}>
-                    <TouchableOpacity
-                      style={styles.albumCardHeader}
-                      onPress={() => setExpandedAlbum(expandedAlbum === album.name ? null : album.name)}
-                      onLongPress={() => handleDeleteCollection(album.name, album.songs, 'album')}
-                      delayLongPress={500}
-                    >
-                      <Image
-                        source={{ uri: album.artwork }}
-                        style={styles.albumCardArtwork}
-                      />
-                      <View style={styles.albumCardInfo}>
-                        <Text style={styles.albumCardTitle} numberOfLines={2}>
-                          {album.name}
-                        </Text>
-                        <Text style={styles.albumCardSubtitle}>
-                          {album.songs.length} songs
-                        </Text>
-                      </View>
-                      <FontAwesome
-                        name={expandedAlbum === album.name ? "chevron-up" : "chevron-down"}
-                        size={20}
-                        color="#999"
-                      />
-                    </TouchableOpacity>
-                    
-                    {expandedAlbum === album.name && (
-                      <View style={styles.albumSongsList}>
-                        {album.songs.map((song, index) => (
-                          <TouchableOpacity
-                            key={song.id}
-                            style={styles.albumSongItem}
-                            onPress={() => handlePlay(song, downloads.findIndex(s => s.id === song.id))}
-                          >
-                            <Text style={styles.albumSongIndex}>{index + 1}</Text>
-                            <View style={styles.albumSongInfo}>
-                              <Text style={styles.albumSongTitle} numberOfLines={1}>
-                                {song.name || song.title}
-                              </Text>
-                              <Text style={styles.albumSongArtist} numberOfLines={1}>
-                                {getArtistName(song.primaryArtists)}
-                              </Text>
-                            </View>
-                            <TouchableOpacity
-                              style={styles.albumSongDelete}
-                              onPress={() => handleDelete(song.id, song.name || song.title)}
-                            >
-                              <FontAwesome name="trash" size={16} color="#ff4444" />
-                            </TouchableOpacity>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                ))
-              )}
-            </ScrollView>
-          )}
-          
-          {activeTab === "playlists" && (
-            <ScrollView 
-              style={styles.contentContainer}
-              contentContainerStyle={currentSong && { paddingBottom: 100 }}
-            >
-              {playlists.length === 0 ? (
-                <View style={styles.emptySection}>
-                  <FontAwesome name="list" size={48} color="#444" />
-                  <Text style={styles.emptySectionText}>No playlists downloaded</Text>
-                </View>
-              ) : (
-                playlists.map((playlist) => (
-                  <View key={playlist.name} style={styles.albumCard}>
-                    <TouchableOpacity
-                      style={styles.albumCardHeader}
-                      onPress={() => setExpandedAlbum(expandedAlbum === playlist.name ? null : playlist.name)}
-                      onLongPress={() => handleDeleteCollection(playlist.name, playlist.songs, 'playlist')}
-                      delayLongPress={500}
-                    >
-                      <View style={styles.playlistIconContainer}>
-                        <Image
-                          source={{ uri: playlist.artwork }}
-                          style={styles.albumCardArtwork}
-                        />
-                        <View style={styles.playlistBadge}>
-                          <FontAwesome name="list" size={12} color="#fff" />
-                        </View>
-                      </View>
-                      <View style={styles.albumCardInfo}>
-                        <Text style={styles.albumCardTitle} numberOfLines={2}>
-                          {playlist.name}
-                        </Text>
-                        <Text style={styles.albumCardSubtitle}>
-                          {playlist.songs.length} songs • Playlist
-                        </Text>
-                      </View>
-                      <FontAwesome
-                        name={expandedAlbum === playlist.name ? "chevron-up" : "chevron-down"}
-                        size={20}
-                        color="#999"
-                      />
-                    </TouchableOpacity>
-                    
-                    {expandedAlbum === playlist.name && (
-                      <View style={styles.albumSongsList}>
-                        {playlist.songs.map((song, index) => (
-                          <TouchableOpacity
-                            key={song.id}
-                            style={styles.albumSongItem}
-                            onPress={() => handlePlay(song, downloads.findIndex(s => s.id === song.id))}
-                          >
-                            <Text style={styles.albumSongIndex}>{index + 1}</Text>
-                            <View style={styles.albumSongInfo}>
-                              <Text style={styles.albumSongTitle} numberOfLines={1}>
-                                {song.name || song.title}
-                              </Text>
-                              <Text style={styles.albumSongArtist} numberOfLines={1}>
-                                {getArtistName(song.primaryArtists)}
-                              </Text>
-                            </View>
-                            <TouchableOpacity
-                              style={styles.albumSongDelete}
-                              onPress={() => handleDelete(song.id, song.name || song.title)}
-                            >
-                              <FontAwesome name="trash" size={16} color="#ff4444" />
-                            </TouchableOpacity>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                ))
-              )}
-            </ScrollView>
-          )}
-          
-          {activeTab === "songs" && (
-            <ScrollView 
-              style={styles.contentContainer}
-              contentContainerStyle={currentSong && { paddingBottom: 100 }}
-            >
-              {individualSongs.length === 0 ? (
-                <View style={styles.emptySection}>
-                  <FontAwesome name="music" size={48} color="#444" />
-                  <Text style={styles.emptySectionText}>No individual songs downloaded</Text>
-                </View>
-              ) : (
-                individualSongs.map((song) => {
-                  const songIndex = downloads.findIndex(s => s.id === song.id);
-                  return renderSongItem({ item: song, index: songIndex });
-                })
-              )}
-            </ScrollView>
-          )}
-        </>
-      )}
+            {/* Downloads Count */}
+            <View style={styles.headerInfo}>
+              <FontAwesome name="music" size={16} color="#999" />
+              <Text style={styles.headerSubtitle}>
+                {downloads.length} songs downloaded
+              </Text>
+            </View>
 
-      {/* Selection Mode Toolbar */}
-      {selectionMode && (
-        <View style={styles.selectionToolbar}>
-          <LinearGradient
-            colors={["#1a1a1a", "#0a0a0a"]}
-            style={styles.selectionToolbarGradient}
-          >
-            <View style={styles.selectionToolbarContent}>
+            {/* Tabs */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.tabsScrollContainer}
+              contentContainerStyle={styles.tabsContainer}
+              nestedScrollEnabled={true}
+            >
               <TouchableOpacity
-                style={styles.selectionToolbarButton}
-                onPress={exitSelectionMode}
+                style={[styles.tab, activeTab === "albums" && styles.activeTab]}
+                onPress={() => setActiveTab("albums")}
               >
-                <FontAwesome name="times" size={22} color="#fff" />
-              </TouchableOpacity>
-              
-              <View style={styles.selectionCountContainer}>
-                <Text style={styles.selectionCount}>
-                  {selectedSongs.size}
+                <FontAwesome
+                  name="folder"
+                  size={18}
+                  color={activeTab === "albums" ? "#ff0066" : "#666"}
+                />
+                <Text style={[styles.tabText, activeTab === "albums" && styles.activeTabText]}>
+                  Albums ({albums.length})
                 </Text>
-              </View>
-              
-              <View style={styles.selectionActions}>
-                <TouchableOpacity
-                  style={styles.selectionActionButton}
-                  onPress={() => {
-                    // Calculate total songs in current tab
-                    let totalInTab = 0;
-                    if (activeTab === 'albums') {
-                      albums.forEach(album => totalInTab += album.songs.length);
-                    } else if (activeTab === 'playlists') {
-                      playlists.forEach(playlist => totalInTab += playlist.songs.length);
-                    } else {
-                      totalInTab = individualSongs.length;
-                    }
-                    
-                    if (selectedSongs.size === totalInTab) {
-                      deselectAll();
-                    } else {
-                      selectAll();
-                    }
-                  }}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === "playlists" && styles.activeTab]}
+                onPress={() => setActiveTab("playlists")}
+              >
+                <FontAwesome
+                  name="list"
+                  size={18}
+                  color={activeTab === "playlists" ? "#ff0066" : "#666"}
+                />
+                <Text style={[styles.tabText, activeTab === "playlists" && styles.activeTabText]}>
+                  Playlists ({playlists.length})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === "songs" && styles.activeTab]}
+                onPress={() => setActiveTab("songs")}
+              >
+                <FontAwesome
+                  name="music"
+                  size={18}
+                  color={activeTab === "songs" ? "#ff0066" : "#666"}
+                />
+                <Text style={[styles.tabText, activeTab === "songs" && styles.activeTabText]}>
+                  Songs ({individualSongs.length})
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+
+          {/* Content */}
+          {isLoading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color="#ff0066" />
+              <Text style={styles.emptyText}>Loading downloads...</Text>
+            </View>
+          ) : downloads.length === 0 ? (
+            <View style={styles.centered}>
+              <FontAwesome name="cloud-download" size={64} color="#333" />
+              <Text style={styles.emptyTitle}>No Downloads Yet</Text>
+              <Text style={styles.emptyText}>
+                Downloaded songs will appear here for offline playback
+              </Text>
+            </View>
+          ) : (
+            <>
+              {activeTab === "albums" && (
+                <ScrollView
+                  style={styles.contentContainer}
+                  contentContainerStyle={currentSong && { paddingBottom: 100 }}
                 >
-                  <FontAwesome 
-                    name={(() => {
-                      let totalInTab = 0;
-                      if (activeTab === 'albums') {
-                        albums.forEach(album => totalInTab += album.songs.length);
-                      } else if (activeTab === 'playlists') {
-                        playlists.forEach(playlist => totalInTab += playlist.songs.length);
-                      } else {
-                        totalInTab = individualSongs.length;
-                      }
-                      return selectedSongs.size === totalInTab ? "check-square" : "square-o";
-                    })()} 
-                    size={20} 
-                    color="#fff" 
-                  />
-                  <Text style={styles.selectionActionText}>
-                    {(() => {
-                      let totalInTab = 0;
-                      if (activeTab === 'albums') {
-                        albums.forEach(album => totalInTab += album.songs.length);
-                      } else if (activeTab === 'playlists') {
-                        playlists.forEach(playlist => totalInTab += playlist.songs.length);
-                      } else {
-                        totalInTab = individualSongs.length;
-                      }
-                      return selectedSongs.size === totalInTab ? "Deselect All" : "Select All";
-                    })()}
-                  </Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[
-                    styles.selectionActionButton,
-                    styles.deleteActionButton,
-                    selectedSongs.size === 0 && styles.deleteActionButtonDisabled
-                  ]}
-                  onPress={handleDeleteSelected}
-                  disabled={selectedSongs.size === 0}
+                  {albums.length === 0 ? (
+                    <View style={styles.emptySection}>
+                      <FontAwesome name="folder-open" size={48} color="#444" />
+                      <Text style={styles.emptySectionText}>No complete albums downloaded</Text>
+                    </View>
+                  ) : (
+                    albums.map((album) => (
+                      <View key={album.name} style={styles.albumCard}>
+                        <TouchableOpacity
+                          style={styles.albumCardHeader}
+                          onPress={() => setExpandedAlbum(expandedAlbum === album.name ? null : album.name)}
+                          onLongPress={() => handleDeleteCollection(album.name, album.songs, 'album')}
+                          delayLongPress={500}
+                        >
+                          <Image
+                            source={{ uri: album.artwork }}
+                            style={styles.albumCardArtwork}
+                          />
+                          <View style={styles.albumCardInfo}>
+                            <Text style={styles.albumCardTitle} numberOfLines={2}>
+                              {album.name}
+                            </Text>
+                            <Text style={styles.albumCardSubtitle}>
+                              {album.songs.length} songs
+                            </Text>
+                          </View>
+                          <FontAwesome
+                            name={expandedAlbum === album.name ? "chevron-up" : "chevron-down"}
+                            size={20}
+                            color="#999"
+                          />
+                        </TouchableOpacity>
+
+                        {expandedAlbum === album.name && (
+                          <View style={styles.albumSongsList}>
+                            {album.songs.map((song, index) => (
+                              <TouchableOpacity
+                                key={song.id}
+                                style={styles.albumSongItem}
+                                onPress={() => handlePlay(song, downloads.findIndex(s => s.id === song.id))}
+                              >
+                                <Text style={styles.albumSongIndex}>{index + 1}</Text>
+                                <View style={styles.albumSongInfo}>
+                                  <Text style={styles.albumSongTitle} numberOfLines={1}>
+                                    {song.name || song.title}
+                                  </Text>
+                                  <Text style={styles.albumSongArtist} numberOfLines={1}>
+                                    {getArtistName(song.primaryArtists)}
+                                  </Text>
+                                </View>
+                                <TouchableOpacity
+                                  style={styles.albumSongDelete}
+                                  onPress={() => handleDelete(song.id, song.name || song.title)}
+                                >
+                                  <FontAwesome name="trash" size={16} color="#ff4444" />
+                                </TouchableOpacity>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    ))
+                  )}
+                </ScrollView>
+              )}
+
+              {activeTab === "playlists" && (
+                <ScrollView
+                  style={styles.contentContainer}
+                  contentContainerStyle={currentSong && { paddingBottom: 100 }}
                 >
-                  <FontAwesome name="trash" size={20} color={selectedSongs.size === 0 ? "#666" : "#ff4444"} />
-                  <Text style={[
-                    styles.selectionActionText,
-                    styles.deleteActionText,
-                    selectedSongs.size === 0 && styles.deleteActionTextDisabled
-                  ]}>
-                    Delete
-                  </Text>
-                </TouchableOpacity>
+                  {playlists.length === 0 ? (
+                    <View style={styles.emptySection}>
+                      <FontAwesome name="list" size={48} color="#444" />
+                      <Text style={styles.emptySectionText}>No playlists downloaded</Text>
+                    </View>
+                  ) : (
+                    playlists.map((playlist) => (
+                      <View key={playlist.name} style={styles.albumCard}>
+                        <TouchableOpacity
+                          style={styles.albumCardHeader}
+                          onPress={() => setExpandedAlbum(expandedAlbum === playlist.name ? null : playlist.name)}
+                          onLongPress={() => handleDeleteCollection(playlist.name, playlist.songs, 'playlist')}
+                          delayLongPress={500}
+                        >
+                          <View style={styles.playlistIconContainer}>
+                            <Image
+                              source={{ uri: playlist.artwork }}
+                              style={styles.albumCardArtwork}
+                            />
+                            <View style={styles.playlistBadge}>
+                              <FontAwesome name="list" size={12} color="#fff" />
+                            </View>
+                          </View>
+                          <View style={styles.albumCardInfo}>
+                            <Text style={styles.albumCardTitle} numberOfLines={2}>
+                              {playlist.name}
+                            </Text>
+                            <Text style={styles.albumCardSubtitle}>
+                              {playlist.songs.length} songs • Playlist
+                            </Text>
+                          </View>
+                          <FontAwesome
+                            name={expandedAlbum === playlist.name ? "chevron-up" : "chevron-down"}
+                            size={20}
+                            color="#999"
+                          />
+                        </TouchableOpacity>
+
+                        {expandedAlbum === playlist.name && (
+                          <View style={styles.albumSongsList}>
+                            {playlist.songs.map((song, index) => (
+                              <TouchableOpacity
+                                key={song.id}
+                                style={styles.albumSongItem}
+                                onPress={() => handlePlay(song, downloads.findIndex(s => s.id === song.id))}
+                              >
+                                <Text style={styles.albumSongIndex}>{index + 1}</Text>
+                                <View style={styles.albumSongInfo}>
+                                  <Text style={styles.albumSongTitle} numberOfLines={1}>
+                                    {song.name || song.title}
+                                  </Text>
+                                  <Text style={styles.albumSongArtist} numberOfLines={1}>
+                                    {getArtistName(song.primaryArtists)}
+                                  </Text>
+                                </View>
+                                <TouchableOpacity
+                                  style={styles.albumSongDelete}
+                                  onPress={() => handleDelete(song.id, song.name || song.title)}
+                                >
+                                  <FontAwesome name="trash" size={16} color="#ff4444" />
+                                </TouchableOpacity>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+                      </View>
+                    ))
+                  )}
+                </ScrollView>
+              )}
+
+              {activeTab === "songs" && (
+                <ScrollView
+                  style={styles.contentContainer}
+                  contentContainerStyle={currentSong && { paddingBottom: 100 }}
+                >
+                  {individualSongs.length === 0 ? (
+                    <View style={styles.emptySection}>
+                      <FontAwesome name="music" size={48} color="#444" />
+                      <Text style={styles.emptySectionText}>No individual songs downloaded</Text>
+                    </View>
+                  ) : (
+                    individualSongs.map((song) => {
+                      const songIndex = downloads.findIndex(s => s.id === song.id);
+                      return renderSongItem({ item: song, index: songIndex });
+                    })
+                  )}
+                </ScrollView>
+              )}
+            </>
+          )}
+
+          {/* Selection Mode Toolbar */}
+          {selectionMode && (
+            <View style={styles.selectionToolbar}>
+              <LinearGradient
+                colors={["#1a1a1a", "#0a0a0a"]}
+                style={styles.selectionToolbarGradient}
+              >
+                <View style={styles.selectionToolbarContent}>
+                  <TouchableOpacity
+                    style={styles.selectionToolbarButton}
+                    onPress={exitSelectionMode}
+                  >
+                    <FontAwesome name="times" size={22} color="#fff" />
+                  </TouchableOpacity>
+
+                  <View style={styles.selectionCountContainer}>
+                    <Text style={styles.selectionCount}>
+                      {selectedSongs.size}
+                    </Text>
+                  </View>
+
+                  <View style={styles.selectionActions}>
+                    <TouchableOpacity
+                      style={styles.selectionActionButton}
+                      onPress={() => {
+                        // Calculate total songs in current tab
+                        let totalInTab = 0;
+                        if (activeTab === 'albums') {
+                          albums.forEach(album => totalInTab += album.songs.length);
+                        } else if (activeTab === 'playlists') {
+                          playlists.forEach(playlist => totalInTab += playlist.songs.length);
+                        } else {
+                          totalInTab = individualSongs.length;
+                        }
+
+                        if (selectedSongs.size === totalInTab) {
+                          deselectAll();
+                        } else {
+                          selectAll();
+                        }
+                      }}
+                    >
+                      <FontAwesome
+                        name={(() => {
+                          let totalInTab = 0;
+                          if (activeTab === 'albums') {
+                            albums.forEach(album => totalInTab += album.songs.length);
+                          } else if (activeTab === 'playlists') {
+                            playlists.forEach(playlist => totalInTab += playlist.songs.length);
+                          } else {
+                            totalInTab = individualSongs.length;
+                          }
+                          return selectedSongs.size === totalInTab ? "check-square" : "square-o";
+                        })()}
+                        size={20}
+                        color="#fff"
+                      />
+                      <Text style={styles.selectionActionText}>
+                        {(() => {
+                          let totalInTab = 0;
+                          if (activeTab === 'albums') {
+                            albums.forEach(album => totalInTab += album.songs.length);
+                          } else if (activeTab === 'playlists') {
+                            playlists.forEach(playlist => totalInTab += playlist.songs.length);
+                          } else {
+                            totalInTab = individualSongs.length;
+                          }
+                          return selectedSongs.size === totalInTab ? "Deselect All" : "Select All";
+                        })()}
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.selectionActionButton,
+                        styles.deleteActionButton,
+                        selectedSongs.size === 0 && styles.deleteActionButtonDisabled
+                      ]}
+                      onPress={handleDeleteSelected}
+                      disabled={selectedSongs.size === 0}
+                    >
+                      <FontAwesome name="trash" size={20} color={selectedSongs.size === 0 ? "#666" : "#ff4444"} />
+                      <Text style={[
+                        styles.selectionActionText,
+                        styles.deleteActionText,
+                        selectedSongs.size === 0 && styles.deleteActionTextDisabled
+                      ]}>
+                        Delete
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </LinearGradient>
+            </View>
+          )}
+
+          {/* Custom Delete Modal */}
+          <Modal
+            visible={showDeleteModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowDeleteModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <LinearGradient
+                  colors={["#2a2a2a", "#1a1a1a"]}
+                  style={styles.modalGradient}
+                >
+                  {/* Modal Header */}
+                  <View style={styles.modalHeader}>
+                    <View style={styles.modalIconContainer}>
+                      <FontAwesome name="trash" size={32} color="#ff4444" />
+                    </View>
+                    <Text style={styles.modalTitle}>Delete {deleteModalData?.type === 'single' ? 'Song' : 'Songs'}</Text>
+                    <Text style={styles.modalSubtitle}>
+                      {deleteModalData?.type === 'single'
+                        ? deleteModalData.title
+                        : deleteModalData?.type === 'collection'
+                          ? `Are you sure you want to delete all ${deleteModalData.count} songs?`
+                          : `Delete ${deleteModalData?.count} selected songs?`
+                      }
+                    </Text>
+                  </View>
+
+                  {/* Modal Actions */}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.modalCancelButton]}
+                      onPress={() => setShowDeleteModal(false)}
+                    >
+                      <Text style={styles.modalCancelText}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.modalDeleteButton]}
+                      onPress={() => deleteModalData?.onConfirm()}
+                    >
+                      <LinearGradient
+                        colors={["#ff4444", "#cc0000"]}
+                        style={styles.modalDeleteGradient}
+                      >
+                        <FontAwesome name="trash" size={16} color="#fff" style={{ marginRight: 8 }} />
+                        <Text style={styles.modalDeleteText}>Delete</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </LinearGradient>
               </View>
             </View>
-          </LinearGradient>
-        </View>
-      )}
-
-      {/* Custom Delete Modal */}
-      <Modal
-        visible={showDeleteModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowDeleteModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <LinearGradient
-              colors={["#2a2a2a", "#1a1a1a"]}
-              style={styles.modalGradient}
-            >
-              {/* Modal Header */}
-              <View style={styles.modalHeader}>
-                <View style={styles.modalIconContainer}>
-                  <FontAwesome name="trash" size={32} color="#ff4444" />
-                </View>
-                <Text style={styles.modalTitle}>Delete {deleteModalData?.type === 'single' ? 'Song' : 'Songs'}</Text>
-                <Text style={styles.modalSubtitle}>
-                  {deleteModalData?.type === 'single'
-                    ? deleteModalData.title
-                    : deleteModalData?.type === 'collection'
-                    ? `Are you sure you want to delete all ${deleteModalData.count} songs?`
-                    : `Delete ${deleteModalData?.count} selected songs?`
-                  }
-                </Text>
-              </View>
-
-              {/* Modal Actions */}
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalCancelButton]}
-                  onPress={() => setShowDeleteModal(false)}
-                >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.modalDeleteButton]}
-                  onPress={() => deleteModalData?.onConfirm()}
-                >
-                  <LinearGradient
-                    colors={["#ff4444", "#cc0000"]}
-                    style={styles.modalDeleteGradient}
-                  >
-                    <FontAwesome name="trash" size={16} color="#fff" style={{ marginRight: 8 }} />
-                    <Text style={styles.modalDeleteText}>Delete</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            </LinearGradient>
-          </View>
-        </View>
-      </Modal>
+          </Modal>
         </View>
 
         {/* Local Files Page */}
@@ -1089,9 +1124,9 @@ export default function DownloadsScreen() {
                   colors={["#ff0066", "#9900ff"]}
                   style={styles.refreshButtonGradient}
                 >
-                  <FontAwesome 
-                    name="refresh" 
-                    size={18} 
+                  <FontAwesome
+                    name="refresh"
+                    size={18}
                     color="#fff"
                     style={isLoadingMedia ? styles.refreshingIcon : undefined}
                   />
@@ -1111,7 +1146,7 @@ export default function DownloadsScreen() {
                   <FontAwesome name="folder-open" size={20} color="#fff" />
                   <Text style={styles.storageTitle}>Device Media</Text>
                 </View>
-                
+
                 <View style={styles.storageStats}>
                   <View style={styles.storageStat}>
                     <Text style={styles.storageLabel}>Audio</Text>
@@ -1141,8 +1176,8 @@ export default function DownloadsScreen() {
 
             {/* Tabs */}
             {mediaPermission && (
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 style={styles.tabsScrollContainer}
                 contentContainerStyle={styles.tabsContainer}
@@ -1152,10 +1187,10 @@ export default function DownloadsScreen() {
                   style={[styles.tab, localTab === "audio" && styles.activeTab]}
                   onPress={() => setLocalTab("audio")}
                 >
-                  <FontAwesome 
-                    name="music" 
-                    size={18} 
-                    color={localTab === "audio" ? "#ff0066" : "#666"} 
+                  <FontAwesome
+                    name="music"
+                    size={18}
+                    color={localTab === "audio" ? "#ff0066" : "#666"}
                   />
                   <Text style={[styles.tabText, localTab === "audio" && styles.activeTabText]}>
                     Audio ({audioFiles.length})
@@ -1165,10 +1200,10 @@ export default function DownloadsScreen() {
                   style={[styles.tab, localTab === "video" && styles.activeTab]}
                   onPress={() => setLocalTab("video")}
                 >
-                  <FontAwesome 
-                    name="video-camera" 
-                    size={18} 
-                    color={localTab === "video" ? "#ff0066" : "#666"} 
+                  <FontAwesome
+                    name="video-camera"
+                    size={18}
+                    color={localTab === "video" ? "#ff0066" : "#666"}
                   />
                   <Text style={[styles.tabText, localTab === "video" && styles.activeTabText]}>
                     Video ({videoFiles.length})
@@ -1186,7 +1221,7 @@ export default function DownloadsScreen() {
               <Text style={styles.emptyText}>
                 Allow access to your device media library to browse audio and video files
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.permissionButton}
                 onPress={requestMediaPermissions}
               >
@@ -1207,7 +1242,7 @@ export default function DownloadsScreen() {
           ) : (
             <>
               {localTab === "audio" && (
-                <ScrollView 
+                <ScrollView
                   style={styles.contentContainer}
                   contentContainerStyle={currentSong && { paddingBottom: 100 }}
                 >
@@ -1237,7 +1272,7 @@ export default function DownloadsScreen() {
                                 <FontAwesome name="music" size={28} color="#fff" />
                               </LinearGradient>
                             </View>
-                            
+
                             <View style={styles.audioInfo}>
                               <Text style={styles.audioTitle} numberOfLines={1}>
                                 {audio.filename.replace(/\.[^/.]+$/, "")}
@@ -1249,7 +1284,7 @@ export default function DownloadsScreen() {
                                 </Text>
                               </View>
                             </View>
-                            
+
                             <View style={styles.audioPlayButton}>
                               <LinearGradient
                                 colors={["#ff0066", "#9900ff"]}
@@ -1267,7 +1302,7 @@ export default function DownloadsScreen() {
               )}
 
               {localTab === "video" && (
-                <ScrollView 
+                <ScrollView
                   style={styles.contentContainer}
                   contentContainerStyle={currentSong && { paddingBottom: 100 }}
                 >
@@ -1282,12 +1317,33 @@ export default function DownloadsScreen() {
                         <TouchableOpacity
                           key={video.id}
                           style={styles.videoCard}
-                          onPress={() => setSelectedVideo({ 
-                            uri: video.uri, 
-                            title: video.filename,
-                            width: video.width,
-                            height: video.height
-                          })}
+                          onPress={async () => {
+                            console.log("[Downloads] Video selected:", {
+                              uri: video.uri,
+                              title: video.filename,
+                              width: video.width,
+                              height: video.height,
+                            });
+
+                            // For Android content:// URIs, copy to cache first for better compatibility
+                            let finalUri = video.uri;
+                            if (Platform.OS === 'android' && video.uri.startsWith('content:')) {
+                              try {
+                                console.log("[Downloads] Copying content URI to cache for video");
+                                finalUri = await copyContentUriToCache(video.uri);
+                                console.log("[Downloads] Video URI copied to cache:", finalUri);
+                              } catch (error) {
+                                console.warn("[Downloads] Failed to copy video URI, using original:", error);
+                              }
+                            }
+
+                            setSelectedVideo({
+                              uri: finalUri,
+                              title: video.filename,
+                              width: video.width,
+                              height: video.height
+                            });
+                          }}
                           activeOpacity={0.9}
                         >
                           <View style={styles.videoCardContainer}>
@@ -1326,7 +1382,7 @@ export default function DownloadsScreen() {
                                 </View>
                               </View>
                               <View style={styles.videoInfoContainer}>
-                                <ScrollingText 
+                                <ScrollingText
                                   text={video.filename.replace(/\.[^/.]+$/, "")}
                                   style={styles.videoTitleText}
                                 />
@@ -1392,7 +1448,7 @@ export default function DownloadsScreen() {
 
       {/* Enhanced Mini Player - Show only on audio tab in local mode, or in downloads mode */}
       {currentSong && ((pageMode === 'local' && localTab === 'audio') || pageMode === 'downloads') && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.miniPlayer}
           onPress={() => router.push("/(tabs)/player")}
           activeOpacity={0.95}
@@ -1413,7 +1469,7 @@ export default function DownloadsScreen() {
                   />
                   <View style={styles.artworkGlow} />
                 </View>
-                
+
                 <View style={styles.miniPlayerInfo}>
                   <View style={styles.nowPlayingBadge}>
                     <View style={styles.nowPlayingDot} />
@@ -1426,7 +1482,7 @@ export default function DownloadsScreen() {
                     {getArtistName(currentSong.primaryArtists)}
                   </Text>
                 </View>
-                
+
                 <TouchableOpacity
                   style={styles.miniPlayerButton}
                   onPress={(e) => {
@@ -1824,7 +1880,7 @@ const styles = StyleSheet.create({
   miniPlayerGlass: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
-    backdropFilter: "blur(20px)",
+    // backdropFilter: "blur(20px)",
   },
   miniPlayerContent: {
     flex: 1,

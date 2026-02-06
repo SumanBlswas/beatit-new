@@ -1,10 +1,10 @@
 // services/saavnService.ts
 import {
-    ApiAlbum,
-    ApiArtist,
-    ApiPlaylist,
-    ApiSong,
-    HomePageData
+  ApiAlbum,
+  ApiArtist,
+  ApiPlaylist,
+  ApiSong,
+  HomePageData,
 } from "./apiTypes";
 
 // Base URL for your Saavn API proxy
@@ -113,7 +113,7 @@ const getHomepageFallback = async (): Promise<HomePageData | null> => {
  * Fetch song details by song ID.
  */
 export const getSongDetails = async (
-  songId: string
+  songId: string,
 ): Promise<ApiSong | null> => {
   if (!songId) {
     console.error("getSongDetails: songId is required.");
@@ -125,7 +125,7 @@ export const getSongDetails = async (
 
     if (!response.ok) {
       console.error(
-        `HTTP error! status: ${response.status} for song ${songId}`
+        `HTTP error! status: ${response.status} for song ${songId}`,
       );
       return null;
     }
@@ -159,7 +159,7 @@ export const getSongDetails = async (
 export const searchSongs = async (
   query: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<{ songs: ApiSong[]; total: number } | null> => {
   if (!query) {
     console.error("searchSongs: query is required.");
@@ -175,7 +175,7 @@ export const searchSongs = async (
 
     if (!response.ok) {
       console.error(
-        `HTTP error! status: ${response.status} for search: ${query}`
+        `HTTP error! status: ${response.status} for search: ${query}`,
       );
       return null;
     }
@@ -232,7 +232,7 @@ export interface GeneralSearchResponseData {
 }
 
 export const searchAllTypes = async (
-  query: string
+  query: string,
 ): Promise<GeneralSearchResponseData | null> => {
   if (!query) {
     console.error("searchAllTypes: query is required.");
@@ -241,12 +241,12 @@ export const searchAllTypes = async (
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/search?query=${encodeURIComponent(query)}`
+      `${API_BASE_URL}/search?query=${encodeURIComponent(query)}`,
     );
 
     if (!response.ok) {
       console.error(
-        `HTTP error! status: ${response.status} for general search: ${query}`
+        `HTTP error! status: ${response.status} for general search: ${query}`,
       );
       return null;
     }
@@ -267,7 +267,7 @@ export const searchAllTypes = async (
     } catch (parseError) {
       console.error(
         `Error parsing JSON for general search "${query}":`,
-        parseError
+        parseError,
       );
       return null;
     }
@@ -283,7 +283,7 @@ export const searchAllTypes = async (
 export const searchAlbums = async (
   query: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<{ albums: ApiAlbum[]; total: number } | null> => {
   if (!query) {
     console.error("searchAlbums: query is required.");
@@ -292,7 +292,7 @@ export const searchAlbums = async (
 
   try {
     let url = `${API_BASE_URL}/search/albums?query=${encodeURIComponent(
-      query
+      query,
     )}`;
     if (page > 1) url += `&page=${page}`;
     if (limit !== 20) url += `&limit=${limit}`;
@@ -301,7 +301,7 @@ export const searchAlbums = async (
 
     if (!response.ok) {
       console.error(
-        `HTTP error! status: ${response.status} for album search: ${query}`
+        `HTTP error! status: ${response.status} for album search: ${query}`,
       );
       return null;
     }
@@ -323,7 +323,7 @@ export const searchAlbums = async (
     } catch (parseError) {
       console.error(
         `Error parsing JSON for album search "${query}":`,
-        parseError
+        parseError,
       );
       return null;
     }
@@ -339,7 +339,7 @@ export const searchAlbums = async (
 export const searchArtists = async (
   query: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<{ artists: ApiArtist[]; total: number } | null> => {
   if (!query) {
     console.error("searchArtists: query is required.");
@@ -348,7 +348,7 @@ export const searchArtists = async (
 
   try {
     let url = `${API_BASE_URL}/search/artists?query=${encodeURIComponent(
-      query
+      query,
     )}`;
     if (page > 1) url += `&page=${page}`;
     if (limit !== 20) url += `&limit=${limit}`;
@@ -357,7 +357,7 @@ export const searchArtists = async (
 
     if (!response.ok) {
       console.error(
-        `HTTP error! status: ${response.status} for artist search: ${query}`
+        `HTTP error! status: ${response.status} for artist search: ${query}`,
       );
       return null;
     }
@@ -379,7 +379,7 @@ export const searchArtists = async (
     } catch (parseError) {
       console.error(
         `Error parsing JSON for artist search "${query}":`,
-        parseError
+        parseError,
       );
       return null;
     }
@@ -395,7 +395,7 @@ export const searchArtists = async (
 export const searchPlaylists = async (
   query: string,
   page: number = 1,
-  limit: number = 20
+  limit: number = 20,
 ): Promise<{ playlists: ApiPlaylist[]; total: number } | null> => {
   if (!query) {
     console.error("searchPlaylists: query is required.");
@@ -404,7 +404,7 @@ export const searchPlaylists = async (
 
   try {
     let url = `${API_BASE_URL}/search/playlists?query=${encodeURIComponent(
-      query
+      query,
     )}`;
     if (page > 1) url += `&page=${page}`;
     if (limit !== 20) url += `&limit=${limit}`;
@@ -413,7 +413,7 @@ export const searchPlaylists = async (
 
     if (!response.ok) {
       console.error(
-        `HTTP error! status: ${response.status} for playlist search: ${query}`
+        `HTTP error! status: ${response.status} for playlist search: ${query}`,
       );
       return null;
     }
@@ -435,72 +435,198 @@ export const searchPlaylists = async (
     } catch (parseError) {
       console.error(
         `Error parsing JSON for playlist search "${query}":`,
-        parseError
+        parseError,
       );
       return null;
     }
   } catch (networkError) {
     console.error(
       `Network error for playlist search "${query}":`,
-      networkError
+      networkError,
     );
     return null;
   }
 };
 
 /**
- * Fetch lyrics for a song by lyricsId or song name and artist.
+ * Fetch lyrics for a song with retry and caching support.
+ * Priority: Cache -> LRCLIB (synced) -> Saavn API
+ * Returns: { lyrics: string, isSynced: boolean } | null
  */
 export const getSongLyrics = async (
   songId: string,
   songName?: string,
-  artistName?: string
-): Promise<string | null> => {
-  if (!songId) {
-    console.error("getSongLyrics: songId is required.");
+  artistName?: string,
+  retryCount: number = 2,
+): Promise<{ lyrics: string; isSynced: boolean } | null> => {
+  if (!songId && !songName) {
+    console.error("getSongLyrics: songId or songName is required.");
     return null;
   }
 
-  try {
-    // First try to get lyrics using lyricsId if available
-    const response = await fetch(`${API_BASE_URL}/lyrics?id=${songId}`);
+  // Clean up song name and artist for better matching
+  const cleanSongName =
+    songName
+      ?.replace(/\(.*?\)/g, "") // Remove parentheses content like "(From Movie)"
+      ?.replace(/\[.*?\]/g, "") // Remove brackets
+      ?.replace(/feat\..*/i, "") // Remove featuring
+      ?.replace(/ft\..*/i, "")
+      ?.trim() || "";
 
-    if (response.ok) {
-      const text = await response.text();
-      try {
-        const json = JSON.parse(text);
-        if (json.success !== false && json.data?.lyrics) {
-          return json.data.lyrics;
-        }
-      } catch (parseError) {
-        console.warn(`Error parsing lyrics JSON for song ${songId}:`, parseError);
-      }
+  const cleanArtistName =
+    artistName
+      ?.split(",")[0] // Take first artist only
+      ?.replace(/\(.*?\)/g, "")
+      ?.trim() || "";
+
+  // Helper: fetch with timeout using Promise.race (more reliable on RN)
+  const fetchWithTimeout = async (
+    url: string,
+    options: RequestInit = {},
+    timeout: number = 10000,
+  ): Promise<Response> => {
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("Request timeout")), timeout);
+    });
+
+    // Remove User-Agent for LRCLIB as it may cause issues on mobile
+    const cleanOptions = { ...options };
+    if (
+      cleanOptions.headers &&
+      (cleanOptions.headers as Record<string, string>)["User-Agent"]
+    ) {
+      delete (cleanOptions.headers as Record<string, string>)["User-Agent"];
     }
 
-    // Fallback: try to get lyrics using song name and artist
-    if (songName && artistName) {
-      const searchQuery = `${songName} ${artistName} lyrics`;
-      const searchResponse = await fetch(
-        `${API_BASE_URL}/search/lyrics?query=${encodeURIComponent(searchQuery)}`
-      );
+    return Promise.race([fetch(url, cleanOptions), timeoutPromise]);
+  };
 
-      if (searchResponse.ok) {
-        const searchText = await searchResponse.text();
+  // Attempt to fetch lyrics
+  const attemptFetch = async (): Promise<{
+    lyrics: string;
+    isSynced: boolean;
+  } | null> => {
+    try {
+      // 1. Try LRCLIB first (provides full synced lyrics)
+      if (cleanSongName && cleanArtistName) {
+        console.log(
+          `[Lyrics] Trying LRCLIB for: "${cleanSongName}" by "${cleanArtistName}"`,
+        );
+
+        const lrclibUrl = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(cleanArtistName)}&track_name=${encodeURIComponent(cleanSongName)}`;
+
         try {
-          const searchJson = JSON.parse(searchText);
-          if (searchJson.success !== false && searchJson.data?.lyrics) {
-            return searchJson.data.lyrics;
+          const lrclibResponse = await fetchWithTimeout(lrclibUrl, {}, 10000);
+
+          if (lrclibResponse.ok) {
+            const lrclibData = await lrclibResponse.json();
+
+            if (lrclibData.syncedLyrics) {
+              console.log("[Lyrics] Got synced lyrics from LRCLIB");
+              return { lyrics: lrclibData.syncedLyrics, isSynced: true };
+            } else if (lrclibData.plainLyrics) {
+              console.log("[Lyrics] Got plain lyrics from LRCLIB");
+              return { lyrics: lrclibData.plainLyrics, isSynced: false };
+            }
           }
-        } catch (parseError) {
-          console.warn(`Error parsing lyrics search JSON:`, parseError);
+        } catch (lrclibError) {
+          console.warn("[Lyrics] LRCLIB error:", lrclibError);
+        }
+
+        // 1b. Try LRCLIB search as backup
+        try {
+          const searchUrl = `https://lrclib.net/api/search?q=${encodeURIComponent(cleanSongName + " " + cleanArtistName)}`;
+          const searchResponse = await fetchWithTimeout(searchUrl, {}, 10000);
+
+          if (searchResponse.ok) {
+            const searchResults = await searchResponse.json();
+            if (Array.isArray(searchResults) && searchResults.length > 0) {
+              const bestMatch = searchResults[0];
+              if (bestMatch.syncedLyrics) {
+                console.log("[Lyrics] Got synced lyrics from LRCLIB search");
+                return { lyrics: bestMatch.syncedLyrics, isSynced: true };
+              } else if (bestMatch.plainLyrics) {
+                console.log("[Lyrics] Got plain lyrics from LRCLIB search");
+                return { lyrics: bestMatch.plainLyrics, isSynced: false };
+              }
+            }
+          }
+        } catch (searchError) {
+          console.warn("[Lyrics] LRCLIB search error:", searchError);
         }
       }
+
+      // 2. Try Saavn API using songId
+      if (songId) {
+        console.log(`[Lyrics] Trying Saavn API for id: ${songId}`);
+        const response = await fetchWithTimeout(
+          `${API_BASE_URL}/lyrics?id=${songId}`,
+          {},
+          8000,
+        );
+
+        if (response.ok) {
+          const text = await response.text();
+          try {
+            const json = JSON.parse(text);
+            if (json.success !== false && json.data?.lyrics) {
+              console.log("[Lyrics] Got lyrics from Saavn API");
+              return { lyrics: json.data.lyrics, isSynced: false };
+            }
+          } catch (parseError) {
+            console.warn(`[Lyrics] Error parsing Saavn JSON:`, parseError);
+          }
+        }
+      }
+
+      // 3. Fallback: Saavn lyrics search
+      if (songName && artistName) {
+        const searchQuery = `${songName} ${artistName}`;
+        const searchResponse = await fetchWithTimeout(
+          `${API_BASE_URL}/search/lyrics?query=${encodeURIComponent(searchQuery)}`,
+          {},
+          8000,
+        );
+
+        if (searchResponse.ok) {
+          const searchText = await searchResponse.text();
+          try {
+            const searchJson = JSON.parse(searchText);
+            if (searchJson.success !== false && searchJson.data?.lyrics) {
+              console.log("[Lyrics] Got lyrics from Saavn search");
+              return { lyrics: searchJson.data.lyrics, isSynced: false };
+            }
+          } catch (parseError) {
+            console.warn(
+              `[Lyrics] Error parsing Saavn search JSON:`,
+              parseError,
+            );
+          }
+        }
+      }
+
+      return null;
+    } catch (networkError) {
+      console.error(`[Lyrics] Network error:`, networkError);
+      return null;
+    }
+  };
+
+  // Retry logic - fast retries since network errors are often transient
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
+    if (attempt > 0) {
+      console.log(`[Lyrics] Retry attempt ${attempt}/${retryCount}`);
+      await new Promise((resolve) => setTimeout(resolve, 300)); // Fast fixed delay
     }
 
-    console.warn(`No lyrics found for song ${songId}`);
-    return null;
-  } catch (networkError) {
-    console.error(`Network error fetching lyrics for song ${songId}:`, networkError);
-    return null;
+    const result = await attemptFetch();
+    if (result) {
+      return result;
+    }
   }
+
+  console.warn(
+    `[Lyrics] No lyrics found for: ${songName || songId} after ${retryCount + 1} attempts`,
+  );
+  return null;
 };

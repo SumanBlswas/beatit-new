@@ -1,4 +1,4 @@
-package com.anonymous.beatit;
+package com.suman334.rear;
 
 import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.NativeModule;

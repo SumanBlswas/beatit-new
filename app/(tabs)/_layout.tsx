@@ -9,15 +9,15 @@ import { Tabs, usePathname, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Dimensions, Pressable, StyleSheet, View, ViewStyle } from "react-native";
 import Animated, {
-    Easing,
-    Extrapolate,
-    interpolate,
-    useAnimatedStyle,
-    useSharedValue,
-    withRepeat,
-    withSequence,
-    withSpring,
-    withTiming,
+  Easing,
+  Extrapolate,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
 } from "react-native-reanimated";
 
 const { width, height } = Dimensions.get("window");
@@ -402,15 +402,17 @@ export default function AppLayout() {
 
   // Handle coming back online
   useEffect(() => {
-    // Coming back online - show enhanced modal if not logged in
-    if (isOnline && wasOffline.current && !userInfo) {
+    // Coming back online - ALWAYS show restart modal
+    if (isOnline && wasOffline.current) {
       wasOffline.current = false;
       setShowOnlineModal(true);
-    } else if (isOnline && wasOffline.current && userInfo) {
-      // User is already logged in, just reset the flag
-      wasOffline.current = false;
     }
-  }, [isOnline, router, userInfo]); // Removed pathname from dependencies to prevent loop
+
+    // Track going offline
+    if (!isOnline) {
+      wasOffline.current = true;
+    }
+  }, [isOnline]);
 
   // Create styles within the component with useMemo
   const dynamicStyles = React.useMemo(() => StyleSheet.create({

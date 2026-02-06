@@ -13,6 +13,12 @@ import { PlayerProvider } from "@/context/PlayerContext";
 import { isOnline } from "@/services/networkService";
 import * as Notifications from "expo-notifications";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import TrackPlayer from 'react-native-track-player';
+
+// Register the playback service
+// This must be done outside of any component
+TrackPlayer.registerPlaybackService(() => require('@/services/playbackService').default);
+
 
 // --- Auth imports ---
 import LoginScreen from "@/components/LoginScreen";
@@ -107,12 +113,12 @@ function AppLayout() {
   }
 
   // If online and logged in, show app
-    return (
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    );
+  return (
+    <Stack>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="+not-found" />
+    </Stack>
+  );
 }
 
 export default function RootLayout() {
@@ -124,8 +130,8 @@ export default function RootLayout() {
 
   useEffect(() => {
     // FIX: Changed NodeJS.Timeout to number for splashTimeout
-    let splashTimeout: number | undefined;
-    let fallbackTimeout: number | undefined; // Also for fallback to be consistent
+    let splashTimeout: any;
+    let fallbackTimeout: any; // Also for fallback to be consistent
 
     const initializeApp = async () => {
       try {

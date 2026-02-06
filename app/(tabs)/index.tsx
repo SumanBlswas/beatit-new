@@ -14,6 +14,7 @@ import {
   statusCodes,
 } from "@react-native-google-signin/google-signin";
 import { useAudioPlayer } from "expo-audio";
+import { BlurView } from "expo-blur";
 import * as FileSystem from "expo-file-system";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
@@ -46,7 +47,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Vibration,
-  View,
+  View
 } from "react-native";
 import {
   Gesture,
@@ -458,7 +459,7 @@ const SearchOverlayFn: React.FC<SearchOverlayProps> = ({
     () => debounce(memoizedFetchSearchResults, 400),
     [memoizedFetchSearchResults]
   );
-  
+
   const handleQueryChange = (text: string) => {
     setQuery(text);
     debouncedFetch(text);
@@ -1169,11 +1170,11 @@ const HomeScreen: React.FC = () => {
   const [selectedArtist, setSelectedArtist] = useState<ApiArtistDetail | null>(
     null
   );
-  
+
   // Album/Playlist download progress state
   const [isDownloadingAlbum, setIsDownloadingAlbum] = useState(false);
   const [albumDownloadProgress, setAlbumDownloadProgress] = useState({ current: 0, total: 0, songName: "" });
-  
+
   type ViewType = "main" | "playlist" | "album" | "artist";
   const [selectedView, setSelectedView] = useState<ViewType>("main");
   const [isSearchOverlayVisible, setIsSearchOverlayVisible] = useState(false);
@@ -1217,6 +1218,8 @@ const HomeScreen: React.FC = () => {
     title: "",
     artist: "",
   });
+  const lastShownNotifRef = useRef({ title: "", artist: "" });
+  const lastNotifTimeRef = useRef(0);
   const [expandedArtistId, setExpandedArtistId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
@@ -1227,6 +1230,10 @@ const HomeScreen: React.FC = () => {
 
   const rippleX = useSharedValue(0);
   const rippleY = useSharedValue(0);
+
+  const handleFloatingNotifHide = useCallback(() => {
+    setShowFloatingNotif(false);
+  }, []);
   useEffect(() => {
     // Listen for favorites updates from other parts of the app (e.g., PlayerContext)
     const unsubscribe = eventOn('favoritesUpdated', (payload: { newFavorites: ApiSong[]; action?: string; songId?: string }) => {
@@ -1594,7 +1601,7 @@ const HomeScreen: React.FC = () => {
 
     try {
       setDownloadProgress((prev) => ({ ...prev, [song.id]: 0 }));
-      
+
       await downloadService.downloadSong(
         song,
         "320kbps",
@@ -1715,7 +1722,7 @@ const HomeScreen: React.FC = () => {
       try {
         await NfcManager.requestTechnology(NfcTech.Ndef);
       } catch (ex) {
-        NfcManager.cancelTechnologyRequest().catch(() => {});
+        NfcManager.cancelTechnologyRequest().catch(() => { });
       }
     };
     const onDiscoverTag = () => {
@@ -1734,7 +1741,7 @@ const HomeScreen: React.FC = () => {
     initNfc();
     return () => {
       NfcManager.setEventListener(NfcEvents.DiscoverTag, null);
-      NfcManager.cancelTechnologyRequest().catch(() => {});
+      NfcManager.cancelTechnologyRequest().catch(() => { });
     };
   }, [currentSong, playerActions]);
 
@@ -1773,24 +1780,24 @@ const HomeScreen: React.FC = () => {
     setVoiceSearchText(text);
     setVoiceSearchQuery(text); // Store the text for SearchOverlay
     setQuery(text);
-    
+
     // Stop the mic search sound and close voice search
     if (micSearchSound.playing) {
       micSearchSound.pause();
       micSearchSound.seekTo(0); // Reset to start
     }
-    
+
     setIsVoiceSearchVisible(false);
     setIsSearchOverlayVisible(true);
   };
 
   const handleMicSearch = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // Play the start sound for 3 seconds
     try {
       micSearchSound.play();
-      
+
       // Stop after 3 seconds
       setTimeout(() => {
         if (micSearchSound.playing) {
@@ -1801,7 +1808,7 @@ const HomeScreen: React.FC = () => {
     } catch (error) {
       console.error("Error playing mic search sound:", error);
     }
-    
+
     setIsVoiceSearchVisible(true);
   };
 
@@ -1830,6 +1837,15 @@ const HomeScreen: React.FC = () => {
     waveProgress.value = 0;
     waveProgress.value = withTiming(1, { duration: 500, easing: Easing.ease });
   };
+
+  const {
+    playSong: playerContextPlaySong,
+    setQueue: playerContextSetQueue,
+    songQuality,
+    setSongQuality,
+    savePlaybackState, // ADD THIS LINE
+    resumeLastPlayback, // ADD THIS LINE
+  } = playerActions;
 
   const gesture = useMemo(
     () =>
@@ -1862,8 +1878,8 @@ const HomeScreen: React.FC = () => {
               if (currentSong) {
                 runOnJS(playerActions.togglePlayPause)();
               } else if (playerActions.lastPlayedSong) {
-                // Resume last played song if tapped when nothing is playing
-                runOnJS(playerActions.resumeLastPlayback)();
+                // Resume last played song WITH its queue
+                runOnJS(resumeLastPlayback)(); // Changed from individual call to use resumeLastPlayback
               }
             }),
           Gesture.Pan()
@@ -1898,7 +1914,7 @@ const HomeScreen: React.FC = () => {
             })
         )
       ),
-    [playerActions]
+    [playerActions, currentSong, resumeLastPlayback] // Add resumeLastPlayback to dependencies
   );
 
   const mainContentGesture = Gesture.LongPress()
@@ -1982,18 +1998,18 @@ const HomeScreen: React.FC = () => {
       const playlistPlaceholder = Image.resolveAssetSource(require('@/assets/images/playlist.png')).uri;
       const songPlaceholder = "https://via.placeholder.com/150/121212/FFFFFF/?text=S";
       const placeholder = isPlaylist ? playlistPlaceholder : songPlaceholder;
-      
+
       if (
         !imageInput ||
         (typeof imageInput === "string" && imageInput.trim() === "")
       )
         return placeholder;
-      
+
       // Handle special playlist placeholder marker
       if (imageInput === "__PLAYLIST_PLACEHOLDER__") {
         return playlistPlaceholder;
       }
-      
+
       if (typeof imageInput === "string") return imageInput;
       if (Array.isArray(imageInput) && imageInput.length > 0) {
         const qualityImage = imageInput.find(
@@ -2081,9 +2097,8 @@ const HomeScreen: React.FC = () => {
         String(songId).trim() === ""
       ) {
         const artistNamesString = artists.map((a) => a.name).join("_");
-        songId = `${rawSong.name || "untitled"}_${
-          artistNamesString || "unknownartist"
-        }_${String(rawSong.duration || "0")}`
+        songId = `${rawSong.name || "untitled"}_${artistNamesString || "unknownartist"
+          }_${String(rawSong.duration || "0")}`
           .replace(/\s+/g, "_")
           .toLowerCase();
       } else {
@@ -2099,22 +2114,22 @@ const HomeScreen: React.FC = () => {
           ? typeof rawSong.album === "string"
             ? { id: rawSong.album, name: rawSong.album, url: "" }
             : {
-                id:
-                  rawSong.album.id ??
-                  rawSong.album.name ??
-                  `album-${Math.random()}`,
-                name: rawSong.album.name ?? "Unknown Album",
-                url: rawSong.album.url ?? "",
-              }
+              id:
+                rawSong.album.id ??
+                rawSong.album.name ??
+                `album-${Math.random()}`,
+              name: rawSong.album.name ?? "Unknown Album",
+              url: rawSong.album.url ?? "",
+            }
           : containerInfo &&
             (containerInfo.type === "album" ||
               containerInfo.objectType === "album")
-          ? {
+            ? {
               id: containerInfo.id ?? `album-${Math.random()}`,
               name: containerInfo.name ?? "Unknown Album",
               url: containerInfo.url ?? "",
             }
-          : {
+            : {
               id: `album-unknown-${Math.random()}`,
               name: "Unknown Album",
               url: "",
@@ -2368,23 +2383,23 @@ const HomeScreen: React.FC = () => {
     const isActive = selectedView === "main" && !expandedHomepageSection;
     const height = isActive
       ? interpolate(
-          scrollY.value,
-          [0, HEADER_SCROLL_DISTANCE],
-          [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-          Extrapolate.CLAMP
-        )
+        scrollY.value,
+        [0, HEADER_SCROLL_DISTANCE],
+        [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+        Extrapolate.CLAMP
+      )
       : HEADER_MIN_HEIGHT;
-    
+
     // Fade out the entire header when scrolling
     const opacity = isActive
       ? interpolate(
-          scrollY.value,
-          [0, HEADER_SCROLL_DISTANCE],
-          [1, 0],
-          Extrapolate.CLAMP
-        )
+        scrollY.value,
+        [0, HEADER_SCROLL_DISTANCE],
+        [1, 0],
+        Extrapolate.CLAMP
+      )
       : (selectedView === "main" ? 1 : 0);
-    
+
     return {
       height,
       opacity,
@@ -2396,19 +2411,19 @@ const HomeScreen: React.FC = () => {
     const isActive = selectedView === "main" && !expandedHomepageSection;
     const opacity = isActive
       ? interpolate(
-          scrollY.value,
-          [0, HEADER_SCROLL_DISTANCE / 2],
-          [1, 0],
-          Extrapolate.CLAMP
-        )
+        scrollY.value,
+        [0, HEADER_SCROLL_DISTANCE / 2],
+        [1, 0],
+        Extrapolate.CLAMP
+      )
       : 0;
     const translateY = isActive
       ? interpolate(
-          scrollY.value,
-          [0, HEADER_SCROLL_DISTANCE],
-          [0, -50],
-          Extrapolate.CLAMP
-        )
+        scrollY.value,
+        [0, HEADER_SCROLL_DISTANCE],
+        [0, -50],
+        Extrapolate.CLAMP
+      )
       : -50;
     return {
       opacity,
@@ -2435,7 +2450,7 @@ const HomeScreen: React.FC = () => {
 
   // CD rotation animation for mini player
   const cdRotation = useSharedValue(0);
-  
+
   useEffect(() => {
     if (isPlaying) {
       cdRotation.value = 0;
@@ -2486,12 +2501,6 @@ const HomeScreen: React.FC = () => {
     };
   });
 
-  const {
-    playSong: playerContextPlaySong,
-    setQueue: playerContextSetQueue,
-    songQuality,
-    setSongQuality,
-  } = playerActions;
   const containerInfoFromSong = useCallback((song: ApiSong) => {
     if (song.album && (song.album.id || song.album.name)) return song.album;
     return undefined;
@@ -2503,10 +2512,10 @@ const HomeScreen: React.FC = () => {
         let queueToUse = sourceList?.length
           ? sourceList
           : selectedArtist?.topSongs?.length
-          ? selectedArtist.topSongs
-          : recommendedSongs.length
-          ? recommendedSongs
-          : [song];
+            ? selectedArtist.topSongs
+            : recommendedSongs.length
+              ? recommendedSongs
+              : [song];
 
         queueToUse = queueToUse.map((s) =>
           s.downloadUrl
@@ -2524,7 +2533,10 @@ const HomeScreen: React.FC = () => {
           startIndex = 0;
         }
 
-        // Determine sourceListType
+        // Set the queue BEFORE playing the song
+        playerContextSetQueue(queueToUse, startIndex);
+
+        // Determine sourceListType for fetching song details
         let sourceListType = "unknown";
         if (selectedView === "album") sourceListType = "album";
         else if (selectedView === "playlist") sourceListType = "playlist";
@@ -2538,10 +2550,6 @@ const HomeScreen: React.FC = () => {
         // For recommended songs only, fetch song details by ID
         if (sourceListType === "recommended") {
           try {
-            console.log(
-              "DEBUG: Fetching song details for recommended song:",
-              songToPlay.id
-            );
             const res = await fetch(
               `https://suman-api.vercel.app/songs?id=${songToPlay.id}`
             );
@@ -2551,64 +2559,24 @@ const HomeScreen: React.FC = () => {
                 const fetched = Array.isArray(apiData.data)
                   ? apiData.data[0]
                   : apiData.data;
-                console.log(
-                  "DEBUG: API Response:",
-                  JSON.stringify(apiData, null, 2)
-                );
-                console.log(
-                  "DEBUG: fetched.downloadUrl type:",
-                  typeof fetched.downloadUrl
-                );
-                console.log(
-                  "DEBUG: fetched.downloadUrl isArray:",
-                  Array.isArray(fetched.downloadUrl)
-                );
-                console.log(
-                  "DEBUG: fetched.downloadUrl value:",
-                  fetched.downloadUrl
-                );
 
                 // Prefer 320kbps downloadUrl
                 let bestUrl = "";
                 if (Array.isArray(fetched.downloadUrl)) {
-                  console.log(
-                    "DEBUG: Processing downloadUrl array with length:",
-                    fetched.downloadUrl.length
-                  );
                   const bestObj =
                     fetched.downloadUrl.find(
                       (urlObj: any) => urlObj.quality === "320kbps"
                     ) || fetched.downloadUrl[0];
-                  console.log("DEBUG: Best download URL object:", bestObj);
-                  console.log("DEBUG: bestObj.quality:", bestObj?.quality);
-                  console.log("DEBUG: bestObj.link:", bestObj?.link);
 
                   if (bestObj && bestObj.link) {
                     bestUrl = bestObj.link;
-                    console.log("DEBUG: Setting bestUrl to:", bestUrl);
-                  } else {
-                    console.log("DEBUG: bestObj or bestObj.link is falsy");
                   }
                 } else if (typeof fetched.downloadUrl === "string") {
                   bestUrl = fetched.downloadUrl;
-                  console.log("DEBUG: Setting bestUrl from string:", bestUrl);
-                } else {
-                  console.log(
-                    "DEBUG: fetched.downloadUrl is neither array nor string"
-                  );
                 }
 
                 if (bestUrl) {
                   songToPlay.downloadUrl = bestUrl;
-                  console.log(
-                    "DEBUG: Updated songToPlay.downloadUrl to:",
-                    songToPlay.downloadUrl
-                  );
-                } else {
-                  console.log(
-                    "DEBUG: No bestUrl found, keeping original downloadUrl:",
-                    songToPlay.downloadUrl
-                  );
                 }
               }
             }
@@ -2620,17 +2588,37 @@ const HomeScreen: React.FC = () => {
           }
         }
 
-        playerContextSetQueue(queueToUse, startIndex);
+        // Play the song - this will automatically save the queue via playSong in PlayerContext
         await playerContextPlaySong(songToPlay);
 
+        // Show floating notification if enabled
         if (showFloatingNotifications) {
-          // ENSURE THIS CONDITION WRAPS THE ENTIRE NOTIFICATION LOGIC
-          setFloatingNotifSongDetails({
+          const newSongDetails = {
             image: getImageUrl(songToPlay.image, "150x150"),
             title: sanitizeSongTitle(songToPlay.name || songToPlay.title),
             artist: getArtistNameFromPrimary(songToPlay.primaryArtists),
-          });
-          setShowFloatingNotif(true);
+          };
+
+          const now = Date.now();
+          const timeSinceLastNotif = now - lastNotifTimeRef.current;
+          const COOLDOWN_MS = 4000;
+
+          const isDifferentSong =
+            lastShownNotifRef.current.title !== newSongDetails.title ||
+            lastShownNotifRef.current.artist !== newSongDetails.artist;
+
+          const cooldownPassed = timeSinceLastNotif > COOLDOWN_MS;
+          const notCurrentlyVisible = !showFloatingNotif;
+
+          if (isDifferentSong && cooldownPassed && notCurrentlyVisible) {
+            lastShownNotifRef.current = {
+              title: newSongDetails.title,
+              artist: newSongDetails.artist
+            };
+            lastNotifTimeRef.current = now;
+            setFloatingNotifSongDetails(newSongDetails);
+            setShowFloatingNotif(true);
+          }
         }
 
         if (isSearchOverlayVisible) setIsSearchOverlayVisible(false);
@@ -2650,21 +2638,23 @@ const HomeScreen: React.FC = () => {
       selectedView,
       expandedHomepageSection,
       showFloatingNotifications,
+      getImageUrl,
+      getArtistNameFromPrimary,
     ]
   );
 
   // Show current song, or last played song, or first recommended song
-  const activeSongForHeader = currentSong || 
+  const activeSongForHeader = currentSong ||
     (playerActions.lastPlayedSong && !currentSong ? playerActions.lastPlayedSong : null) ||
     (recommendedSongs.length > 0 ? recommendedSongs[0] : null);
-  
+
   const activeSongTitle = sanitizeSongTitle(
     activeSongForHeader?.name || activeSongForHeader?.title || "Music Player"
   );
   const activeSongArtistDisplay = activeSongForHeader
     ? getArtistNameFromPrimary(activeSongForHeader.primaryArtists) ||
-      activeSongForHeader.subtitle ||
-      "Select a song"
+    activeSongForHeader.subtitle ||
+    "Select a song"
     : "Select a song";
   const activeSongArtwork = activeSongForHeader
     ? getImageUrl(activeSongForHeader.image, "500x500")
@@ -2912,12 +2902,12 @@ const HomeScreen: React.FC = () => {
         expandedHomepageSection.type === "playlists"
           ? "All Playlists"
           : expandedHomepageSection.type === "albums"
-          ? "All Albums"
-          : expandedHomepageSection.type === "charts"
-          ? "All Top Charts"
-          : expandedHomepageSection.type === "trending"
-          ? "All Trending Songs"
-          : "Explore";
+            ? "All Albums"
+            : expandedHomepageSection.type === "charts"
+              ? "All Top Charts"
+              : expandedHomepageSection.type === "trending"
+                ? "All Trending Songs"
+                : "Explore";
     } else if (selectedView === "playlist" && selectedPlaylist)
       title = selectedPlaylist?.name || selectedPlaylist?.title || "Playlist";
     else if (selectedView === "album" && selectedAlbum)
@@ -2941,14 +2931,14 @@ const HomeScreen: React.FC = () => {
             onPress={
               expandedHomepageSection && selectedView === "main"
                 ? () => {
-                    setExpandedHomepageSection(null);
-                    scrollY.value = 0;
-                    if (flatListRef.current)
-                      flatListRef.current.scrollToOffset({
-                        offset: 0,
-                        animated: false,
-                      });
-                  }
+                  setExpandedHomepageSection(null);
+                  scrollY.value = 0;
+                  if (flatListRef.current)
+                    flatListRef.current.scrollToOffset({
+                      offset: 0,
+                      animated: false,
+                    });
+                }
                 : handleBack
             }
             style={styles.backButton}
@@ -2968,8 +2958,8 @@ const HomeScreen: React.FC = () => {
         </Text>
 
         {selectedView === "main" &&
-        expandedHomepageSection &&
-        expandedHomepageSection.type !== "trending" ? (
+          expandedHomepageSection &&
+          expandedHomepageSection.type !== "trending" ? (
           <View style={styles.expandedControlsContainer}>
             <TouchableOpacity
               onPress={() => handleViewModeToggle("list")}
@@ -3191,7 +3181,7 @@ const HomeScreen: React.FC = () => {
                 style={[
                   styles.languageChipText,
                   selectedLanguage === item.code &&
-                    styles.languageChipTextSelected,
+                  styles.languageChipTextSelected,
                 ]}
               >
                 {item.name}
@@ -3403,9 +3393,9 @@ const HomeScreen: React.FC = () => {
           item: song,
           index: 0,
           separators: {
-            highlight: () => {},
-            unhighlight: () => {},
-            updateProps: () => {},
+            highlight: () => { },
+            unhighlight: () => { },
+            updateProps: () => { },
           },
         });
       }
@@ -3482,8 +3472,7 @@ const HomeScreen: React.FC = () => {
               data={expandedDataToRender}
               renderItem={expandedRenderItemFunction}
               keyExtractor={(item, index) =>
-                `${expandedType}-${expandedViewMode}-${
-                  item.id || item.name || index
+                `${expandedType}-${expandedViewMode}-${item.id || item.name || index
                 }`
               }
               numColumns={expandedNumListColumns}
@@ -3655,7 +3644,7 @@ const HomeScreen: React.FC = () => {
                     horizontal
                     data={favorites.slice(0, HORIZONTAL_ITEM_LIMIT)}
                     renderItem={({ item }) => renderFavoriteSongItem(item)}
-                    keyExtractor={(item) => `favorite-main-${item.id}`}
+                    keyExtractor={(item, index) => `favorite-main-${item.id}-${index}`}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingHorizontal: 10 }}
                   />
@@ -3667,23 +3656,23 @@ const HomeScreen: React.FC = () => {
                     <Text style={styles.sectionTitle}>Trending Now</Text>
                     {homePageModules.trending.songs.length >
                       VIEW_ALL_THRESHOLD && (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setExpandedHomepageSection({
-                            type: "trending",
-                            viewMode: "list",
-                          });
-                          scrollY.value = 0;
-                          if (flatListRef.current)
-                            flatListRef.current.scrollToOffset({
-                              offset: 0,
-                              animated: false,
+                        <TouchableOpacity
+                          onPress={() => {
+                            setExpandedHomepageSection({
+                              type: "trending",
+                              viewMode: "list",
                             });
-                        }}
-                      >
-                        <Text style={styles.viewAllButtonText}>View All</Text>
-                      </TouchableOpacity>
-                    )}
+                            scrollY.value = 0;
+                            if (flatListRef.current)
+                              flatListRef.current.scrollToOffset({
+                                offset: 0,
+                                animated: false,
+                              });
+                          }}
+                        >
+                          <Text style={styles.viewAllButtonText}>View All</Text>
+                        </TouchableOpacity>
+                      )}
                   </View>
                   <FlatList
                     horizontal
@@ -3770,12 +3759,12 @@ const HomeScreen: React.FC = () => {
             >
               <FontAwesome name="play" size={28} color="#000" />
             </TouchableOpacity>
-            
+
             {/* Download Playlist Button */}
             {(() => {
               const allDownloaded = selectedPlaylist?.songs?.every(song => downloadedSongs.includes(song.id)) || false;
               const hasAnySongs = selectedPlaylist?.songs && selectedPlaylist.songs.length > 0;
-              
+
               return (
                 <TouchableOpacity
                   style={[
@@ -3788,10 +3777,10 @@ const HomeScreen: React.FC = () => {
                   }
                   disabled={!hasAnySongs || allDownloaded}
                 >
-                  <FontAwesome 
-                    name={allDownloaded ? "check-circle" : "download"} 
-                    size={22} 
-                    color="#fff" 
+                  <FontAwesome
+                    name={allDownloaded ? "check-circle" : "download"}
+                    size={22}
+                    color="#fff"
                   />
                 </TouchableOpacity>
               );
@@ -3853,12 +3842,12 @@ const HomeScreen: React.FC = () => {
             >
               <FontAwesome name="play" size={28} color="#000" />
             </TouchableOpacity>
-            
+
             {/* Download Album Button */}
             {(() => {
               const allDownloaded = selectedAlbum?.songs?.every(song => downloadedSongs.includes(song.id)) || false;
               const hasAnySongs = selectedAlbum?.songs && selectedAlbum.songs.length > 0;
-              
+
               return (
                 <TouchableOpacity
                   style={[
@@ -3871,10 +3860,10 @@ const HomeScreen: React.FC = () => {
                   }
                   disabled={!hasAnySongs || allDownloaded}
                 >
-                  <FontAwesome 
-                    name={allDownloaded ? "check-circle" : "download"} 
-                    size={22} 
-                    color="#fff" 
+                  <FontAwesome
+                    name={allDownloaded ? "check-circle" : "download"}
+                    size={22}
+                    color="#fff"
                   />
                 </TouchableOpacity>
               );
@@ -4029,12 +4018,12 @@ const HomeScreen: React.FC = () => {
                 selectedView === "album"
                   ? "album"
                   : selectedView === "playlist"
-                  ? "playlist"
-                  : selectedView === "artist"
-                  ? "artist"
-                  : expandedHomepageSection?.type === "trending"
-                  ? "trending"
-                  : "recommended",
+                    ? "playlist"
+                    : selectedView === "artist"
+                      ? "artist"
+                      : expandedHomepageSection?.type === "trending"
+                        ? "trending"
+                        : "recommended",
             });
 
             handlePlaySong(item, sourceList);
@@ -4306,8 +4295,8 @@ const HomeScreen: React.FC = () => {
       >
         <Animated.View
           style={[
-            StyleSheet.absoluteFill, 
-            styles.settingsBackdrop, 
+            StyleSheet.absoluteFill,
+            styles.settingsBackdrop,
             overlayStyle,
           ]}
           pointerEvents="box-none"
@@ -4322,517 +4311,517 @@ const HomeScreen: React.FC = () => {
             <Text style={styles.settingsTitle}>Settings</Text>
             <ScrollView style={styles.settingsScrollView} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
 
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Theme Mode</Text>
-            <View style={styles.settingControl}>
-              <TouchableOpacity
-                style={[
-                  styles.themeButton,
-                  themeMode === "auto" && styles.themeButtonActive,
-                ]}
-                onPress={() => handleSetThemeMode("auto")}
-              >
-                <Text
-                  style={[
-                    styles.themeButtonText,
-                    themeMode === "auto" && styles.themeButtonTextActive,
-                  ]}
-                >
-                  Auto
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.themeButton,
-                  themeMode === "reverse" && styles.themeButtonActive,
-                ]}
-                onPress={() => handleSetThemeMode("reverse")}
-              >
-                <Text
-                  style={[
-                    styles.themeButtonText,
-                    themeMode === "reverse" && styles.themeButtonTextActive,
-                  ]}
-                >
-                  Reverse
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.themeButton,
-                  themeMode === "manual" && styles.themeButtonActive,
-                ]}
-                onPress={() => handleSetThemeMode("manual")}
-              >
-                <Text
-                  style={[
-                    styles.themeButtonText,
-                    themeMode === "manual" && styles.themeButtonTextActive,
-                  ]}
-                >
-                  Manual
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          {themeMode === "manual" && (
-            <>
               <View style={styles.settingRow}>
-                <FontAwesome
-                  name="paint-brush"
-                  size={20}
-                  color={colors.textSecondary}
-                  style={styles.settingIcon}
-                />
-                <Text style={styles.settingLabel}>Appearance</Text>
+                <Text style={styles.settingLabel}>Theme Mode</Text>
                 <View style={styles.settingControl}>
                   <TouchableOpacity
                     style={[
                       styles.themeButton,
-                      theme === "light" && styles.themeButtonActive,
+                      themeMode === "auto" && styles.themeButtonActive,
                     ]}
-                    onPress={() => handleSetTheme("light")}
+                    onPress={() => handleSetThemeMode("auto")}
                   >
                     <Text
                       style={[
                         styles.themeButtonText,
-                        theme === "light" && styles.themeButtonTextActive,
+                        themeMode === "auto" && styles.themeButtonTextActive,
                       ]}
                     >
-                      Light
+                      Auto
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
                       styles.themeButton,
-                      theme === "dark" && styles.themeButtonActive,
+                      themeMode === "reverse" && styles.themeButtonActive,
                     ]}
-                    onPress={() => handleSetTheme("dark")}
+                    onPress={() => handleSetThemeMode("reverse")}
                   >
                     <Text
                       style={[
                         styles.themeButtonText,
-                        theme === "dark" && styles.themeButtonTextActive,
+                        themeMode === "reverse" && styles.themeButtonTextActive,
                       ]}
                     >
-                      Dark
+                      Reverse
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.themeButton,
+                      themeMode === "manual" && styles.themeButtonActive,
+                    ]}
+                    onPress={() => handleSetThemeMode("manual")}
+                  >
+                    <Text
+                      style={[
+                        styles.themeButtonText,
+                        themeMode === "manual" && styles.themeButtonTextActive,
+                      ]}
+                    >
+                      Manual
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
+              {themeMode === "manual" && (
+                <>
+                  <View style={styles.settingRow}>
+                    <FontAwesome
+                      name="paint-brush"
+                      size={20}
+                      color={colors.textSecondary}
+                      style={styles.settingIcon}
+                    />
+                    <Text style={styles.settingLabel}>Appearance</Text>
+                    <View style={styles.settingControl}>
+                      <TouchableOpacity
+                        style={[
+                          styles.themeButton,
+                          theme === "light" && styles.themeButtonActive,
+                        ]}
+                        onPress={() => handleSetTheme("light")}
+                      >
+                        <Text
+                          style={[
+                            styles.themeButtonText,
+                            theme === "light" && styles.themeButtonTextActive,
+                          ]}
+                        >
+                          Light
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.themeButton,
+                          theme === "dark" && styles.themeButtonActive,
+                        ]}
+                        onPress={() => handleSetTheme("dark")}
+                      >
+                        <Text
+                          style={[
+                            styles.themeButtonText,
+                            theme === "dark" && styles.themeButtonTextActive,
+                          ]}
+                        >
+                          Dark
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <View style={styles.settingRow}>
+                    <FontAwesome
+                      name="star"
+                      size={20}
+                      color={colors.textSecondary}
+                      style={styles.settingIcon}
+                    />
+                    <Text style={styles.settingLabel}>Visual Mode</Text>
+                  </View>
+                  <View style={styles.visualModeContainer}>
+                    <View style={styles.modeRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.modeButton,
+                          appearanceMode === "normal" && styles.modeButtonActive,
+                        ]}
+                        onPress={() => handleSetAppearance("normal")}
+                      >
+                        <FontAwesome
+                          name="circle"
+                          size={16}
+                          color={
+                            appearanceMode === "normal"
+                              ? "#fff"
+                              : colors.textSecondary
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.modeButtonText,
+                            appearanceMode === "normal" &&
+                            styles.modeButtonTextActive,
+                          ]}
+                        >
+                          Normal
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.modeButton,
+                          appearanceMode === "vivid" && styles.modeButtonActive,
+                        ]}
+                        onPress={() => handleSetAppearance("vivid")}
+                      >
+                        <FontAwesome
+                          name="paint-brush"
+                          size={16}
+                          color={
+                            appearanceMode === "vivid"
+                              ? "#fff"
+                              : colors.textSecondary
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.modeButtonText,
+                            appearanceMode === "vivid" &&
+                            styles.modeButtonTextActive,
+                          ]}
+                        >
+                          Vivid
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                    {theme === "light" && (
+                      <View style={styles.modeRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.modeButton,
+                            appearanceMode === "realistic" &&
+                            styles.modeButtonActive,
+                          ]}
+                          onPress={() => handleSetAppearance("realistic")}
+                        >
+                          <FontAwesome
+                            name="play-circle"
+                            size={16}
+                            color={
+                              appearanceMode === "realistic"
+                                ? "#fff"
+                                : colors.textSecondary
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.modeButtonText,
+                              appearanceMode === "realistic" &&
+                              styles.modeButtonTextActive,
+                            ]}
+                          >
+                            Animate
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[
+                            styles.modeButton,
+                            appearanceMode === "fluid" && styles.modeButtonActive,
+                          ]}
+                          onPress={() => handleSetAppearance("fluid")}
+                        >
+                          <FontAwesome
+                            name="tint"
+                            size={16}
+                            color={
+                              appearanceMode === "fluid"
+                                ? "#fff"
+                                : colors.textSecondary
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.modeButtonText,
+                              appearanceMode === "fluid" &&
+                              styles.modeButtonTextActive,
+                            ]}
+                          >
+                            Fluid
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {theme === "dark" && (
+                      <View style={styles.modeRow}>
+                        <TouchableOpacity
+                          style={[
+                            styles.modeButton,
+                            appearanceMode === "ambience" &&
+                            styles.modeButtonActive,
+                          ]}
+                          onPress={() => handleSetAppearance("ambience")}
+                        >
+                          <FontAwesome
+                            name="moon-o"
+                            size={16}
+                            color={
+                              appearanceMode === "ambience"
+                                ? "#fff"
+                                : colors.textSecondary
+                            }
+                          />
+                          <Text
+                            style={[
+                              styles.modeButtonText,
+                              appearanceMode === "ambience" &&
+                              styles.modeButtonTextActive,
+                            ]}
+                          >
+                            Ambience
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+              {(themeMode === "auto" || themeMode === "reverse") && (
+                <Text style={styles.settingDescription}>
+                  {themeMode === "auto"
+                    ? "Theme follows ambient light sensor: dark in dark rooms, light in bright rooms."
+                    : "Theme is opposite of ambient light: dark in bright rooms, light in dark rooms."}
+                </Text>
+              )}
+
               <View style={styles.settingRow}>
                 <FontAwesome
-                  name="star"
+                  name="volume-up"
                   size={20}
                   color={colors.textSecondary}
                   style={styles.settingIcon}
                 />
-                <Text style={styles.settingLabel}>Visual Mode</Text>
-              </View>
-              <View style={styles.visualModeContainer}>
-                <View style={styles.modeRow}>
+                <Text style={styles.settingLabel}>Audio Output</Text>
+                <View style={styles.settingControl}>
                   <TouchableOpacity
                     style={[
-                      styles.modeButton,
-                      appearanceMode === "normal" && styles.modeButtonActive,
+                      styles.themeButton,
+                      audioOutput === "speaker" && styles.themeButtonActive,
                     ]}
-                    onPress={() => handleSetAppearance("normal")}
+                    onPress={() => setAudioOutput("speaker")}
                   >
-                    <FontAwesome
-                      name="circle"
-                      size={16}
-                      color={
-                        appearanceMode === "normal"
-                          ? "#fff"
-                          : colors.textSecondary
-                      }
-                    />
                     <Text
                       style={[
-                        styles.modeButtonText,
-                        appearanceMode === "normal" &&
-                          styles.modeButtonTextActive,
+                        styles.themeButtonText,
+                        audioOutput === "speaker" && styles.themeButtonTextActive,
                       ]}
                     >
-                      Normal
+                      Speaker
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
-                      styles.modeButton,
-                      appearanceMode === "vivid" && styles.modeButtonActive,
+                      styles.themeButton,
+                      audioOutput === "earpiece" && styles.themeButtonActive,
                     ]}
-                    onPress={() => handleSetAppearance("vivid")}
+                    onPress={() => setAudioOutput("earpiece")}
                   >
-                    <FontAwesome
-                      name="paint-brush"
-                      size={16}
-                      color={
-                        appearanceMode === "vivid"
-                          ? "#fff"
-                          : colors.textSecondary
-                      }
-                    />
                     <Text
                       style={[
-                        styles.modeButtonText,
-                        appearanceMode === "vivid" &&
-                          styles.modeButtonTextActive,
+                        styles.themeButtonText,
+                        audioOutput === "earpiece" && styles.themeButtonTextActive,
                       ]}
                     >
-                      Vivid
+                      Earpiece
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {theme === "light" && (
-                  <View style={styles.modeRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.modeButton,
-                        appearanceMode === "realistic" &&
-                          styles.modeButtonActive,
-                      ]}
-                      onPress={() => handleSetAppearance("realistic")}
-                    >
-                      <FontAwesome
-                        name="play-circle"
-                        size={16}
-                        color={
-                          appearanceMode === "realistic"
-                            ? "#fff"
-                            : colors.textSecondary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.modeButtonText,
-                          appearanceMode === "realistic" &&
-                            styles.modeButtonTextActive,
-                        ]}
-                      >
-                        Animate
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.modeButton,
-                        appearanceMode === "fluid" && styles.modeButtonActive,
-                      ]}
-                      onPress={() => handleSetAppearance("fluid")}
-                    >
-                      <FontAwesome
-                        name="tint"
-                        size={16}
-                        color={
-                          appearanceMode === "fluid"
-                            ? "#fff"
-                            : colors.textSecondary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.modeButtonText,
-                          appearanceMode === "fluid" &&
-                            styles.modeButtonTextActive,
-                        ]}
-                      >
-                        Fluid
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {theme === "dark" && (
-                  <View style={styles.modeRow}>
-                    <TouchableOpacity
-                      style={[
-                        styles.modeButton,
-                        appearanceMode === "ambience" &&
-                          styles.modeButtonActive,
-                      ]}
-                      onPress={() => handleSetAppearance("ambience")}
-                    >
-                      <FontAwesome
-                        name="moon-o"
-                        size={16}
-                        color={
-                          appearanceMode === "ambience"
-                            ? "#fff"
-                            : colors.textSecondary
-                        }
-                      />
-                      <Text
-                        style={[
-                          styles.modeButtonText,
-                          appearanceMode === "ambience" &&
-                            styles.modeButtonTextActive,
-                        ]}
-                      >
-                        Ambience
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
-            </>
-          )}
-          {(themeMode === "auto" || themeMode === "reverse") && (
-            <Text style={styles.settingDescription}>
-              {themeMode === "auto"
-                ? "Theme follows ambient light sensor: dark in dark rooms, light in bright rooms."
-                : "Theme is opposite of ambient light: dark in bright rooms, light in dark rooms."}
-            </Text>
-          )}
 
-          <View style={styles.settingRow}>
-            <FontAwesome
-              name="volume-up"
-              size={20}
-              color={colors.textSecondary}
-              style={styles.settingIcon}
-            />
-            <Text style={styles.settingLabel}>Audio Output</Text>
-            <View style={styles.settingControl}>
-              <TouchableOpacity
-                style={[
-                  styles.themeButton,
-                  audioOutput === "speaker" && styles.themeButtonActive,
-                ]}
-                onPress={() => setAudioOutput("speaker")}
-              >
-                <Text
-                  style={[
-                    styles.themeButtonText,
-                    audioOutput === "speaker" && styles.themeButtonTextActive,
-                  ]}
+              <View style={styles.settingRow}>
+                <FontAwesome
+                  name="music"
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingLabel}>Song Quality</Text>
+                <TouchableOpacity
+                  style={styles.qualityDropdownButton}
+                  onPress={() => setIsQualityDropdownOpen(!isQualityDropdownOpen)}
                 >
-                  Speaker
+                  <Text style={styles.qualityDropdownText}>
+                    {songQuality === "320kbps"
+                      ? "Pro HD+"
+                      : songQuality === "160kbps"
+                        ? "High"
+                        : songQuality === "96kbps"
+                          ? "Medium"
+                          : "Low"}
+                  </Text>
+                  <FontAwesome
+                    name={isQualityDropdownOpen ? "chevron-up" : "chevron-down"}
+                    size={16}
+                    color={colors.textSecondary}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {isQualityDropdownOpen && (
+                <View style={styles.qualityDropdownOptions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.qualityOption,
+                      songQuality === "320kbps" && styles.qualityOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setSongQuality("320kbps");
+                      setIsQualityDropdownOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.qualityOptionText,
+                        songQuality === "320kbps" &&
+                        styles.qualityOptionTextSelected,
+                      ]}
+                    >
+                      Pro HD+ (320kbps)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.qualityOption,
+                      songQuality === "160kbps" && styles.qualityOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setSongQuality("160kbps");
+                      setIsQualityDropdownOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.qualityOptionText,
+                        songQuality === "160kbps" &&
+                        styles.qualityOptionTextSelected,
+                      ]}
+                    >
+                      High (160kbps)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.qualityOption,
+                      songQuality === "96kbps" && styles.qualityOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setSongQuality("96kbps");
+                      setIsQualityDropdownOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.qualityOptionText,
+                        songQuality === "96kbps" &&
+                        styles.qualityOptionTextSelected,
+                      ]}
+                    >
+                      Medium (96kbps)
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.qualityOption,
+                      songQuality === "48kbps" && styles.qualityOptionSelected,
+                    ]}
+                    onPress={() => {
+                      setSongQuality("48kbps");
+                      setIsQualityDropdownOpen(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.qualityOptionText,
+                        songQuality === "48kbps" &&
+                        styles.qualityOptionTextSelected,
+                      ]}
+                    >
+                      Low (48kbps)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={styles.settingRow}>
+                <FontAwesome
+                  name="bell" // Choose an appropriate icon
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingLabel}>
+                  Pop-up Notifications
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: colors.primary,
+                      fontWeight: "bold",
+                      marginLeft: 2,
+                      position: "relative",
+                      top: -8,
+                    }}
+                  >
+                    {" "}
+                    β
+                  </Text>
                 </Text>
-              </TouchableOpacity>
+                <Switch
+                  trackColor={{ false: colors.separator, true: colors.primary }}
+                  thumbColor={colors.card}
+                  ios_backgroundColor={colors.separator}
+                  onValueChange={handleToggleFloatingNotifications}
+                  value={showFloatingNotifications}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <FontAwesome
+                  name="moon-o"
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingLabel}>Keep Screen Awake</Text>
+                <Switch
+                  trackColor={{ false: colors.separator, true: colors.primary }}
+                  thumbColor={colors.card}
+                  ios_backgroundColor={colors.separator}
+                  onValueChange={handleToggleKeepAwake}
+                  value={isKeepAwakeEnabled}
+                />
+              </View>
+
+              <View style={styles.settingRow}>
+                <FontAwesome
+                  name="random"
+                  size={20}
+                  color={colors.textSecondary}
+                  style={styles.settingIcon}
+                />
+                <Text style={styles.settingLabel}>
+                  Shake to Next Song
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      color: colors.primary,
+                      fontWeight: "bold",
+                      marginLeft: 2,
+                      position: "relative",
+                      top: -8,
+                    }}
+                  >
+                    {" "}
+                    β
+                  </Text>
+                </Text>
+                <Switch
+                  trackColor={{ false: colors.separator, true: colors.primary }}
+                  thumbColor={colors.card}
+                  ios_backgroundColor={colors.separator}
+                  onValueChange={handleToggleShakeNext}
+                  value={isShakeNextEnabled}
+                />
+              </View>
+
               <TouchableOpacity
-                style={[
-                  styles.themeButton,
-                  audioOutput === "earpiece" && styles.themeButtonActive,
-                ]}
-                onPress={() => setAudioOutput("earpiece")}
+                style={styles.settingsCloseButton}
+                onPress={() => setIsSettingsVisible(false)}
               >
-                <Text
-                  style={[
-                    styles.themeButtonText,
-                    audioOutput === "earpiece" && styles.themeButtonTextActive,
-                  ]}
-                >
-                  Earpiece
-                </Text>
+                <Text style={styles.settingsCloseButtonText}>Done</Text>
               </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.settingRow}>
-            <FontAwesome
-              name="music"
-              size={20}
-              color={colors.textSecondary}
-              style={styles.settingIcon}
-            />
-            <Text style={styles.settingLabel}>Song Quality</Text>
-            <TouchableOpacity
-              style={styles.qualityDropdownButton}
-              onPress={() => setIsQualityDropdownOpen(!isQualityDropdownOpen)}
-            >
-              <Text style={styles.qualityDropdownText}>
-                {songQuality === "320kbps"
-                  ? "Pro HD+"
-                  : songQuality === "160kbps"
-                  ? "High"
-                  : songQuality === "96kbps"
-                  ? "Medium"
-                  : "Low"}
-              </Text>
-              <FontAwesome
-                name={isQualityDropdownOpen ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={colors.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {isQualityDropdownOpen && (
-            <View style={styles.qualityDropdownOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.qualityOption,
-                  songQuality === "320kbps" && styles.qualityOptionSelected,
-                ]}
-                onPress={() => {
-                  setSongQuality("320kbps");
-                  setIsQualityDropdownOpen(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.qualityOptionText,
-                    songQuality === "320kbps" &&
-                      styles.qualityOptionTextSelected,
-                  ]}
-                >
-                  Pro HD+ (320kbps)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.qualityOption,
-                  songQuality === "160kbps" && styles.qualityOptionSelected,
-                ]}
-                onPress={() => {
-                  setSongQuality("160kbps");
-                  setIsQualityDropdownOpen(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.qualityOptionText,
-                    songQuality === "160kbps" &&
-                      styles.qualityOptionTextSelected,
-                  ]}
-                >
-                  High (160kbps)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.qualityOption,
-                  songQuality === "96kbps" && styles.qualityOptionSelected,
-                ]}
-                onPress={() => {
-                  setSongQuality("96kbps");
-                  setIsQualityDropdownOpen(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.qualityOptionText,
-                    songQuality === "96kbps" &&
-                      styles.qualityOptionTextSelected,
-                  ]}
-                >
-                  Medium (96kbps)
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.qualityOption,
-                  songQuality === "48kbps" && styles.qualityOptionSelected,
-                ]}
-                onPress={() => {
-                  setSongQuality("48kbps");
-                  setIsQualityDropdownOpen(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.qualityOptionText,
-                    songQuality === "48kbps" &&
-                      styles.qualityOptionTextSelected,
-                  ]}
-                >
-                  Low (48kbps)
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.settingRow}>
-            <FontAwesome
-              name="bell" // Choose an appropriate icon
-              size={20}
-              color={colors.textSecondary}
-              style={styles.settingIcon}
-            />
-            <Text style={styles.settingLabel}>
-              Pop-up Notifications
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: colors.primary,
-                  fontWeight: "bold",
-                  marginLeft: 2,
-                  position: "relative",
-                  top: -8,
-                }}
-              >
-                {" "}
-                β
-              </Text>
-            </Text>
-            <Switch
-              trackColor={{ false: colors.separator, true: colors.primary }}
-              thumbColor={colors.card}
-              ios_backgroundColor={colors.separator}
-              onValueChange={handleToggleFloatingNotifications}
-              value={showFloatingNotifications}
-            />
-          </View>
-
-          <View style={styles.settingRow}>
-            <FontAwesome
-              name="moon-o"
-              size={20}
-              color={colors.textSecondary}
-              style={styles.settingIcon}
-            />
-            <Text style={styles.settingLabel}>Keep Screen Awake</Text>
-            <Switch
-              trackColor={{ false: colors.separator, true: colors.primary }}
-              thumbColor={colors.card}
-              ios_backgroundColor={colors.separator}
-              onValueChange={handleToggleKeepAwake}
-              value={isKeepAwakeEnabled}
-            />
-          </View>
-
-          <View style={styles.settingRow}>
-            <FontAwesome
-              name="random"
-              size={20}
-              color={colors.textSecondary}
-              style={styles.settingIcon}
-            />
-            <Text style={styles.settingLabel}>
-              Shake to Next Song
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: colors.primary,
-                  fontWeight: "bold",
-                  marginLeft: 2,
-                  position: "relative",
-                  top: -8,
-                }}
-              >
-                {" "}
-                β
-              </Text>
-            </Text>
-            <Switch
-              trackColor={{ false: colors.separator, true: colors.primary }}
-              thumbColor={colors.card}
-              ios_backgroundColor={colors.separator}
-              onValueChange={handleToggleShakeNext}
-              value={isShakeNextEnabled}
-            />
-          </View>
-
-          <TouchableOpacity
-            style={styles.settingsCloseButton}
-            onPress={() => setIsSettingsVisible(false)}
-          >
-            <Text style={styles.settingsCloseButtonText}>Done</Text>
-          </TouchableOpacity>
-          </ScrollView>
-        </Animated.View>
+            </ScrollView>
+          </Animated.View>
         </Animated.View>
       </Modal>
     );
@@ -6183,11 +6172,10 @@ const HomeScreen: React.FC = () => {
             <Text style={styles.loadingText}>
               {selectedView === "main" && !expandedHomepageSection
                 ? "Loading songs..."
-                : `Loading ${
-                    selectedView === "main" && expandedHomepageSection
-                      ? expandedHomepageSection.type
-                      : selectedView
-                  }...`}
+                : `Loading ${selectedView === "main" && expandedHomepageSection
+                  ? expandedHomepageSection.type
+                  : selectedView
+                }...`}
             </Text>
           </View>
         )}
@@ -6271,12 +6259,12 @@ const HomeScreen: React.FC = () => {
                     {isLoading
                       ? "Loading songs..."
                       : selectedView === "album"
-                      ? "No songs in this album"
-                      : selectedView === "playlist"
-                      ? "No songs in this playlist"
-                      : selectedView === "artist"
-                      ? ""
-                      : "No songs available for current selection."}
+                        ? "No songs in this album"
+                        : selectedView === "playlist"
+                          ? "No songs in this playlist"
+                          : selectedView === "artist"
+                            ? ""
+                            : "No songs available for current selection."}
                   </Text>
                 </View>
               ) : null
@@ -6308,33 +6296,72 @@ const HomeScreen: React.FC = () => {
             </TouchableOpacity>
           </Animated.View>
         )}
-        
-        {/* Beautiful AI Mic Search Button */}
-        <TouchableOpacity
-          style={styles.aiMicButton}
-          onPress={handleMicSearch}
-          activeOpacity={0.9}
-        >
+
+        {/* Premium Floating Search Bar - Thick Liquid Glass Style */}
+        <Animated.View style={[
+          styles.floatingSearchContainer,
+          {
+            opacity: libraryButtonOpacity,
+            // Ultra-low opacity background to let the colorful blur shine through (prevents washing out)
+            backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.1)',
+            // Crisp, glassy border
+            borderColor: theme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.3)',
+            borderWidth: 1.5,
+          }
+        ]}>
+          {/* MAX Intensity Blur for thick glass distortion/saturation */}
+          <BlurView intensity={100} tint={theme === 'dark' ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+
+          {/* Top Gloss/Sheen - Strong but transparent */}
           <LinearGradient
-            colors={[colors.primary + "EE", colors.primary]}
-            style={styles.aiMicGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            colors={['rgba(255,255,255,0.4)', 'rgba(255,255,255,0.05)', 'transparent']}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 0.8 }}
+            style={[StyleSheet.absoluteFill, { height: '60%', opacity: 0.8 }]}
+          />
+
+          {/* Bottom Rim Glow */}
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.2)']}
+            start={{ x: 0.5, y: 0.5 }}
+            end={{ x: 0.5, y: 1 }}
+            style={[StyleSheet.absoluteFill, { top: '50%' }]}
+          />
+
+          {/* Search Trigger Area */}
+          <TouchableOpacity
+            style={styles.searchBarTextContainer}
+            activeOpacity={0.6}
+            onPress={() => setIsSearchOverlayVisible(true)}
           >
-            <View style={styles.aiMicContent}>
-              <View style={styles.micIconContainer}>
-                <FontAwesome
-                  name="microphone"
-                  size={20}
-                  color="#FFFFFF"
-                />
-              </View>
-              <Text style={styles.aiMicText}>Search</Text>
+            <View style={{
+              width: 32, height: 32, borderRadius: 16,
+              backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)',
+              justifyContent: 'center', alignItems: 'center',
+              marginRight: 10
+            }}>
+              <FontAwesome name="search" size={14} color={theme === 'dark' ? '#FFF' : '#333'} />
             </View>
-          </LinearGradient>
-        </TouchableOpacity>
-        
-      </SafeAreaView>
+
+            <Text style={[styles.searchBarPlaceholder, {
+              color: theme === 'dark' ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)',
+              fontWeight: '600',
+              fontSize: 16
+            }]}>Search</Text>
+          </TouchableOpacity>
+
+          <View style={{ width: 1, height: 20, backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', marginHorizontal: 5 }} />
+
+          <TouchableOpacity
+            style={styles.searchBarMicButton}
+            onPress={handleMicSearch}
+            activeOpacity={0.7}
+          >
+            <FontAwesome name="microphone" size={18} color={theme === 'dark' ? '#FFF' : '#333'} />
+          </TouchableOpacity>
+        </Animated.View>
+
+      </SafeAreaView >
       <SearchOverlay
         isVisible={isSearchOverlayVisible}
         onClose={toggleSearchOverlay}
@@ -6391,136 +6418,138 @@ const HomeScreen: React.FC = () => {
           <FontAwesome name="book" size={24} color={colors.textSecondary} />
         </Pressable>
       </Animated.View>
-      {deleteModalVisible && (
-        <Modal
-          visible
-          transparent
-          animationType="fade"
-          onRequestClose={() => setDeleteModalVisible(false)}
-        >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "rgba(30,30,40,0.25)",
-              justifyContent: "center",
-              alignItems: "center",
-            }}
+      {
+        deleteModalVisible && (
+          <Modal
+            visible
+            transparent
+            animationType="fade"
+            onRequestClose={() => setDeleteModalVisible(false)}
           >
-            <Animated.View
-              // entering={Animated.FadeIn?.duration ? Animated.FadeIn.duration(250) : undefined}/z
+            <View
               style={{
-                width: 340,
-                backgroundColor: "#fff",
-                borderRadius: 24,
-                padding: 28,
+                flex: 1,
+                backgroundColor: "rgba(30,30,40,0.25)",
+                justifyContent: "center",
                 alignItems: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.18,
-                shadowRadius: 24,
-                elevation: 12,
               }}
             >
-              <View
+              <Animated.View
+                // entering={Animated.FadeIn?.duration ? Animated.FadeIn.duration(250) : undefined}/z
                 style={{
-                  backgroundColor: "#FFF3E6",
-                  borderRadius: 50,
-                  padding: 18,
-                  marginBottom: 18,
+                  width: 340,
+                  backgroundColor: "#fff",
+                  borderRadius: 24,
+                  padding: 28,
+                  alignItems: "center",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.18,
+                  shadowRadius: 24,
+                  elevation: 12,
                 }}
               >
-                <FontAwesome
-                  name="exclamation-triangle"
-                  size={38}
-                  color="#FFA500"
-                />
-              </View>
-              <Text
-                style={{
-                  fontSize: 22,
-                  fontWeight: "bold",
-                  color: "#222",
-                  marginBottom: 10,
-                  textAlign: "center",
-                }}
-              >
-                {deleteType === "playlist" ? "Delete Playlist?" : "Remove Song?"}
-              </Text>
-              <Text
-                style={{
-                  color: "#666",
-                  fontSize: 16,
-                  marginBottom: 28,
-                  textAlign: "center",
-                  lineHeight: 22,
-                }}
-              >
-                {deleteType === "playlist" 
-                  ? "Are you sure you want to delete this playlist? All songs will be removed. This action cannot be undone."
-                  : `Are you sure you want to remove this song from ${deleteType === "favorite" ? "your Favorites" : "this Playlist"}? This action cannot be undone.`
-                }
-              </Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  width: "100%",
-                  justifyContent: "space-between",
-                }}
-              >
-                <TouchableOpacity
+                <View
                   style={{
-                    flex: 1,
-                    backgroundColor: "#F3F4F6",
-                    paddingVertical: 14,
-                    borderRadius: 12,
-                    marginRight: 10,
-                    alignItems: "center",
-                  }}
-                  onPress={() => setDeleteModalVisible(false)}
-                >
-                  <Text
-                    style={{ color: "#555", fontWeight: "600", fontSize: 16 }}
-                  >
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={{
-                    flex: 1,
-                    backgroundColor: "#FFA500",
-                    paddingVertical: 14,
-                    borderRadius: 12,
-                    alignItems: "center",
-                    shadowColor: "#FFA500",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 6,
-                    elevation: 2,
-                  }}
-                  onPress={() => {
-                    if (deleteType === "favorite" && itemToDelete)
-                      handleDeleteFavorite(itemToDelete);
-                    else if (
-                      deleteType === "playlistSong" &&
-                      deletePlaylistId &&
-                      itemToDelete
-                    )
-                      handleDeletePlaylistSong(deletePlaylistId, itemToDelete);
-                    else if (deleteType === "playlist" && deletePlaylistId)
-                      handleDeletePlaylist(deletePlaylistId);
+                    backgroundColor: "#FFF3E6",
+                    borderRadius: 50,
+                    padding: 18,
+                    marginBottom: 18,
                   }}
                 >
-                  <Text
-                    style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}
+                  <FontAwesome
+                    name="exclamation-triangle"
+                    size={38}
+                    color="#FFA500"
+                  />
+                </View>
+                <Text
+                  style={{
+                    fontSize: 22,
+                    fontWeight: "bold",
+                    color: "#222",
+                    marginBottom: 10,
+                    textAlign: "center",
+                  }}
+                >
+                  {deleteType === "playlist" ? "Delete Playlist?" : "Remove Song?"}
+                </Text>
+                <Text
+                  style={{
+                    color: "#666",
+                    fontSize: 16,
+                    marginBottom: 28,
+                    textAlign: "center",
+                    lineHeight: 22,
+                  }}
+                >
+                  {deleteType === "playlist"
+                    ? "Are you sure you want to delete this playlist? All songs will be removed. This action cannot be undone."
+                    : `Are you sure you want to remove this song from ${deleteType === "favorite" ? "your Favorites" : "this Playlist"}? This action cannot be undone.`
+                  }
+                </Text>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    width: "100%",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#F3F4F6",
+                      paddingVertical: 14,
+                      borderRadius: 12,
+                      marginRight: 10,
+                      alignItems: "center",
+                    }}
+                    onPress={() => setDeleteModalVisible(false)}
                   >
-                    Delete
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-          </View>
-        </Modal>
-      )}
+                    <Text
+                      style={{ color: "#555", fontWeight: "600", fontSize: 16 }}
+                    >
+                      Cancel
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      backgroundColor: "#FFA500",
+                      paddingVertical: 14,
+                      borderRadius: 12,
+                      alignItems: "center",
+                      shadowColor: "#FFA500",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 6,
+                      elevation: 2,
+                    }}
+                    onPress={() => {
+                      if (deleteType === "favorite" && itemToDelete)
+                        handleDeleteFavorite(itemToDelete);
+                      else if (
+                        deleteType === "playlistSong" &&
+                        deletePlaylistId &&
+                        itemToDelete
+                      )
+                        handleDeletePlaylistSong(deletePlaylistId, itemToDelete);
+                      else if (deleteType === "playlist" && deletePlaylistId)
+                        handleDeletePlaylist(deletePlaylistId);
+                    }}
+                  >
+                    <Text
+                      style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}
+                    >
+                      Delete
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            </View>
+          </Modal>
+        )
+      }
 
       <NotificationCardPage
         songs={recommendedSongs} // Pass your song data here
@@ -6534,7 +6563,7 @@ const HomeScreen: React.FC = () => {
         songTitle={floatingNotifSongDetails.title}
         artistName={floatingNotifSongDetails.artist}
         isVisible={showFloatingNotif}
-        onHide={() => setShowFloatingNotif(false)}
+        onHide={handleFloatingNotifHide}
         colors={colors}
       />
 
@@ -6548,7 +6577,7 @@ const HomeScreen: React.FC = () => {
 
       {/* Settings Overlay - Rendered last to be on top */}
       <SettingsOverlay />
-    </AnimatedGestureHandlerRootView>
+    </AnimatedGestureHandlerRootView >
   );
 };
 
@@ -7514,7 +7543,7 @@ const createStyles = (colors: AppColors) =>
     },
     libraryFab: {
       position: "absolute",
-      bottom: 55,
+      bottom: 85,
       right: 20,
       width: 56,
       height: 56,
@@ -7826,7 +7855,7 @@ const createStyles = (colors: AppColors) =>
     },
     miniPlayer: {
       position: "absolute",
-      bottom: 55,
+      bottom: 85,
       left: 20,
       zIndex: 50,
     },
@@ -7934,6 +7963,61 @@ const createStyles = (colors: AppColors) =>
     },
     waveGradient: {
       flex: 1,
+    },
+    // --- New Floating Search Bar Styles ---
+    floatingSearchContainer: {
+      position: "absolute",
+      bottom: 20, // Adjusted as per user preference (was 10 in partial edit, 55 before) - sticking to a clean distance
+      alignSelf: "center",
+      width: width * 0.85, // WIDER! Liquid designs usually span more width
+      height: 55, // Slightly taller for better touch targets
+      borderRadius: 28, // Matches height/2 roughly
+      overflow: "hidden",
+      flexDirection: "row",
+      alignItems: "center",
+      // Shadow for depth (Liquid Floating)
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.3,
+      shadowRadius: 20,
+      elevation: 10,
+      zIndex: 60,
+    },
+    searchBarTextContainer: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingLeft: 20,
+      height: '100%',
+    },
+    searchBarPlaceholder: {
+      fontSize: 16,
+      fontWeight: '500',
+      letterSpacing: 0.3,
+    },
+    searchDivider: {
+      width: 1,
+      height: '60%',
+      backgroundColor: colors.separator,
+      marginHorizontal: 4,
+    },
+    searchBarMicButton: {
+      width: 50,
+      height: 50,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    searchBarMicGradient: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+      elevation: 4,
     },
   });
 

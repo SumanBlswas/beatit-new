@@ -1,25 +1,25 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import React, { useEffect, useRef } from "react";
 import {
-  Image,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
+    Image,
+    Platform,
+    StyleSheet,
+    Text,
+    View,
+    ViewStyle,
 } from "react-native";
 import Animated, {
-  Easing,
-  interpolate,
-  interpolateColor,
-  runOnJS,
-  SharedValue,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
+    Easing,
+    interpolate,
+    interpolateColor,
+    runOnJS,
+    SharedValue,
+    useAnimatedStyle,
+    useSharedValue,
+    withDelay,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -424,9 +424,6 @@ const FloatingNotification: React.FC<FloatingNotificationProps> = ({
     };
   }, [
     isVisible,
-    songTitle, // These are only here for React's exhaustive-deps linting,
-    artistName, // but generally don't need to trigger the effect unless
-    songImage, // their *change* should reset the animation.
     onHide,
     // All shared values should be in the dependency array for completeness,
     // as their .value is set within the effect.

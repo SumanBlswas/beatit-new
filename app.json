@@ -8,19 +8,28 @@
     "scheme": "rear",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "reactNativeTrackPlayer": {
+      "playbackService": "./services/trackPlayerService.ts"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": [
+          "audio"
+        ],
         "CFBundleDocumentTypes": [
           {
             "CFBundleTypeName": "Audio",
-            "LSItemContentTypes": ["public.audio"],
+            "LSItemContentTypes": [
+              "public.audio"
+            ],
             "CFBundleTypeRole": "Viewer"
           },
           {
             "CFBundleTypeName": "Video",
-            "LSItemContentTypes": ["public.video"],
+            "LSItemContentTypes": [
+              "public.video"
+            ],
             "CFBundleTypeRole": "Viewer"
           }
         ]
@@ -30,7 +39,10 @@
       {
         "name": "MusicPlayerWidget",
         "bundleIdentifier": "com.anonymous.beatit.widget",
-        "widgetFamily": ["systemSmall", "systemMedium"],
+        "widgetFamily": [
+          "systemSmall",
+          "systemMedium"
+        ],
         "widgetBackgroundColor": "#222",
         "widgetDisplayName": "Now Playing"
       }
@@ -40,7 +52,10 @@
         "projectId": "1655e879-0c32-4f6a-8eb7-8692cddb668d"
       }
     },
-    "owner": "suman334"
+    "owner": "suman334",
+    "android": {
+      "package": "com.suman334.rear"
+    }
   },
   "edgeToEdgeEnabled": true,
   "android": {
@@ -83,7 +98,10 @@
             "mimeType": "video/*"
           }
         ],
-        "categories": ["BROWSABLE", "DEFAULT"]
+        "categories": [
+          "BROWSABLE",
+          "DEFAULT"
+        ]
       }
     ]
   },
