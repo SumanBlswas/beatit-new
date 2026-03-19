@@ -373,11 +373,12 @@ export default function LoginScreen() {
           scopes: ["profile", "email"],
         });
         const userInfo = await GoogleSignin.signInSilently();
-        if (userInfo.data.idToken) {
+        if (userInfo && userInfo.data && userInfo.data.idToken) {
           const backendUser = await sendTokenToBackend(userInfo.data.idToken);
           signIn(backendUser);
         } else {
-          throw new Error("No ID token present.");
+          console.log("No ID token or user data available from silent sign-in.");
+          setIsCheckingSilentSignIn(false);
         }
       } catch (error: any) {
         if (error.code === statusCodes.SIGN_IN_REQUIRED) {
@@ -828,10 +829,10 @@ const styles = StyleSheet.create({
   },
   heroIcon: {
     marginBottom: 40,
-    shadowColor: "#000",
+    shadowColor: "#00ffff",
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
     elevation: 15,
   },
   stepTitle: {

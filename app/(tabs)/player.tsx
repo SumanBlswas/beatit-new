@@ -161,6 +161,52 @@ const secondsToMinuteSecond = (milliseconds: number | undefined): string => {
   return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
+// --- OPTIMIZED SEEKBAR COMPONENT ---
+interface SeekBarProps {
+  onSeek: (value: number) => void;
+  styles: any;
+}
+
+const SeekBar = React.memo(({ onSeek, styles }: SeekBarProps) => {
+  const { playbackPosition, playbackDuration } = useProgress();
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [sliderValue, setSliderValue] = useState(0);
+
+  useEffect(() => {
+    if (!isSeeking && playbackPosition !== undefined) {
+      setSliderValue(playbackPosition);
+    }
+  }, [playbackPosition, isSeeking]);
+
+  return (
+    <Animated.View style={styles.seekBarContainer}>
+      <Slider
+        style={styles.slider}
+        minimumValue={0}
+        maximumValue={playbackDuration || 1}
+        value={sliderValue}
+        minimumTrackTintColor="#1DB954"
+        maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
+        thumbTintColor="#1DB954"
+        onSlidingStart={() => setIsSeeking(true)}
+        onSlidingComplete={(val) => {
+          setIsSeeking(false);
+          onSeek(val);
+        }}
+        onValueChange={(value) => setSliderValue(value)}
+      />
+      <View style={styles.timeContainer}>
+        <Text style={styles.timeText}>
+          {secondsToMinuteSecond(playbackPosition)}
+        </Text>
+        <Text style={styles.timeText}>
+          {secondsToMinuteSecond(playbackDuration)}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+});
+
 // --- ANIMATED LYRIC LINE COMPONENT ---
 const LyricLine = React.memo(({
   text,
@@ -228,19 +274,19 @@ const LyricLine = React.memo(({
 });
 
 // --- COMPACT LYRICS OVERLAY (shows on artwork) ---
-const LyricsOverlay = ({
+const LyricsOverlay = React.memo(({
   visible,
   onClose,
   lyrics,
-  currentTime,
   isSynced,
 }: {
   visible: boolean;
   onClose: () => void;
   lyrics: any[];
-  currentTime: number;
   isSynced: boolean;
 }) => {
+  const { playbackPosition } = useProgress();
+  const currentTime = (playbackPosition || 0) / 1000;
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(0);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -427,16 +473,8 @@ const LyricsOverlay = ({
       </Animated.View>
     </GestureDetector>
   );
-};
+});
 
-export default function PlayerLayout() {
-  return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <FullPlayerScreen />
-    </>
-  );
-}
 
 export const FullPlayerScreen: React.FC = () => {
   const {
@@ -449,9 +487,10 @@ export const FullPlayerScreen: React.FC = () => {
     seekTo,
     playbackMode,
     togglePlaybackMode,
+    isLoading,
   } = usePlayer();
 
-  const { playbackPosition, playbackDuration } = useProgress();
+  // Removed useProgress here - moved to SeekBar and LyricsOverlay
   const { isOnline } = useNetworkStatus();
   const {
     nfcSupported,
@@ -462,8 +501,6 @@ export const FullPlayerScreen: React.FC = () => {
   } = useNfc();
   const { showAlert, AlertComponent } = useBeautifulAlert();
 
-  const [isSeeking, setIsSeeking] = useState(false);
-  const [sliderValue, setSliderValue] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [showNfcModal, setShowNfcModal] = useState(false);
   const isChangingSongRef = useRef(false);
@@ -642,11 +679,7 @@ export const FullPlayerScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong]);
 
-  useEffect(() => {
-    if (!isSeeking && playbackPosition !== undefined) {
-      setSliderValue(playbackPosition);
-    }
-  }, [playbackPosition, isSeeking]);
+  // Removed playbackPosition useEffect - handled by SeekBar component
 
   // Auto-close NFC modal after success/error
   useEffect(() => {
@@ -703,14 +736,13 @@ export const FullPlayerScreen: React.FC = () => {
     .activeOffsetX([-20, 20])
     .failOffsetY([-10, 10])
     .onEnd((e) => {
-      if (e.translationX > 20 && !isSeeking && !isChangingSongRef.current) {
+      if (e.translationX > 20 && !isChangingSongRef.current) {
         isChangingSongRef.current = true;
         artworkAppear.value = withTiming(0, { duration: 100 });
         runOnJS(previousSong)();
         slideOffset.value = withTiming(0, { duration: 300 });
       } else if (
         e.translationX < -20 &&
-        !isSeeking &&
         !isChangingSongRef.current
       ) {
         isChangingSongRef.current = true;
@@ -820,8 +852,6 @@ export const FullPlayerScreen: React.FC = () => {
     if (seekTo) {
       seekTo(value);
     }
-    setSliderValue(value);
-    setIsSeeking(false);
   };
 
   const handleShare = async () => {
@@ -993,7 +1023,6 @@ export const FullPlayerScreen: React.FC = () => {
                     visible={showLyrics}
                     onClose={() => setShowLyrics(false)}
                     lyrics={lyricsData}
-                    currentTime={(playbackPosition || 0) / 1000}
                     isSynced={isSyncedLyrics}
                   />
                 </Animated.View>
@@ -1026,30 +1055,10 @@ export const FullPlayerScreen: React.FC = () => {
               </Animated.View>
             </GestureDetector>
 
-            <Animated.View
-              style={[styles.seekBarContainer, animatedControlsStyle]}
-            >
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={playbackDuration || 1}
-                value={sliderValue}
-                minimumTrackTintColor="#1DB954"
-                maximumTrackTintColor="rgba(255, 255, 255, 0.3)"
-                thumbTintColor="#1DB954"
-                onSlidingStart={() => setIsSeeking(true)}
-                onSlidingComplete={handleSeek}
-                onValueChange={(value) => setSliderValue(value)}
-              />
-              <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>
-                  {secondsToMinuteSecond(playbackPosition)}
-                </Text>
-                <Text style={styles.timeText}>
-                  {secondsToMinuteSecond(playbackDuration)}
-                </Text>
-              </View>
-            </Animated.View>
+            <SeekBar
+              onSeek={handleSeek}
+              styles={styles}
+            />
 
             <Animated.View
               style={[styles.controlsContainer, animatedControlsStyle]}
@@ -1332,3 +1341,11 @@ const styles = StyleSheet.create({
     minWidth: 160,
   },
 });
+export default function PlayerLayout() {
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <FullPlayerScreen />
+    </>
+  );
+}

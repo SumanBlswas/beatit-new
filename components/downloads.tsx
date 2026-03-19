@@ -4,9 +4,9 @@ import { usePlayer } from "@/context/PlayerContext"; // Assuming PlayerContext i
 import { ApiSong } from "@/services/apiTypes";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Network from "expo-network";
-import { Stack, router, useFocusEffect, useSearchParams } from "expo-router";
+import { Stack, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -85,7 +85,7 @@ const STORAGE_KEYS = {
 
 export default function DownloadsScreen() {
   const { playSong, setQueue } = usePlayer();
-  const params = useSearchParams();
+  const params = useLocalSearchParams();
   const playUriParam = params.playUri as string | undefined;
   const [videoModalVisible, setVideoModalVisible] = useState(false);
   const [videoModalUri, setVideoModalUri] = useState<string | null>(null);

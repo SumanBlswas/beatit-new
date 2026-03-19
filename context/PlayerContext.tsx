@@ -9,10 +9,10 @@ import {
 } from "@/services/audioEq";
 import * as downloadService from "@/services/downloadService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as ExpoFileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as ScreenOrientation from "expo-screen-orientation";
-import { useVideoPlayer } from 'expo-video';
+
 import React, {
     createContext,
     useCallback,
@@ -209,6 +209,14 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 });
                 isSetup.current = true;
                 console.log("TrackPlayer setup complete");
+                
+                // Initialize Equalizer
+                try {
+                    await initEqualizer(0);
+                    console.log("Equalizer initialized with global session");
+                } catch (e) {
+                    console.warn("Global Equalizer init failed:", e);
+                }
             } catch (error) {
                 isSetup.current = true;
                 console.log("TrackPlayer setup error (likely already setup):", error);
@@ -217,26 +225,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setup();
     }, []);
 
-    // Video player using expo-video
-    const videoPlayer = useVideoPlayer(null, (playerInstance) => {
-        playerInstance.muted = false;
-        playerInstance.showNowPlayingNotification = true;
-        playerInstance.staysActiveInBackground = true;
-        if ((playerInstance as any).allowsExternalPlayback !== undefined) {
-            (playerInstance as any).allowsExternalPlayback = false;
-        }
-        try { (playerInstance as any).audioSessionMode = 'none'; } catch { }
-        try { (playerInstance as any).audioMixWithOthers = true; } catch { }
-    });
+
 
     // Unified position/duration
     const position = currentPlayerType === 'audio' ? rntpPosition * 1000 : videoProgress.position;
     const duration = currentPlayerType === 'audio' ? rntpDuration * 1000 : videoProgress.duration;
 
-    // Monitor video progress - FIXED to prevent circular updates
-    useEffect(() => {
-        if (currentPlayerType !== 'video') return;
-    }, [currentPlayerType, videoPlayer]);
+
 
     // Storage helpers
     const saveEqSettings = useCallback(async (profile: string, customGains: number[]) => {
@@ -307,31 +302,25 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const stop = useCallback(async () => {
         try {
             await TrackPlayer.reset();
-            videoPlayer?.pause();
         } catch (e) { console.warn("stop() encountered error:", e); }
         setIsPlaying(false);
         setCurrentSong(null);
-    }, [videoPlayer]);
+    }, []);
 
     const seekTo = useCallback(async (positionMs: number) => {
         const positionSec = positionMs / 1000;
         if (currentPlayerType === 'audio') {
             await TrackPlayer.seekTo(positionSec);
-        } else {
-            (videoPlayer as any).currentTime = positionSec;
         }
-    }, [currentPlayerType, videoPlayer]);
+    }, [currentPlayerType]);
 
     const seekBy = useCallback(async (seconds: number) => {
         if (currentPlayerType === 'audio') {
             const newPos = rntpPosition + seconds;
             await TrackPlayer.seekTo(newPos);
-        } else {
-            const currentTime = (videoPlayer as any).currentTime || 0;
-            (videoPlayer as any).currentTime = currentTime + seconds;
         }
         Haptics.selectionAsync();
-    }, [currentPlayerType, rntpPosition, videoPlayer]);
+    }, [currentPlayerType, rntpPosition]);
 
     // Helper to get song URL
     const getSongUrl = useCallback(async (song: ApiSong): Promise<string | undefined> => {
@@ -384,10 +373,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }, 8000); // Increased timeout for potential file copying
 
         try {
-            // 2. Pause existing video
-            if (videoPlayer && (videoPlayer as any).playing) {
-                videoPlayer.pause();
-            }
+
             setCurrentPlayerType('audio');
 
             // 3. Resolve URL
@@ -413,10 +399,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (Platform.OS === 'android' && finalUrl.startsWith('content:')) {
                 try {
                     const fileName = (song.name || 'temp_video').replace(/[^a-zA-Z0-9]/g, '_');
-                    const dest = `${ExpoFileSystem.cacheDirectory}${fileName}`;
+                    const dest = `${FileSystem.cacheDirectory}${fileName}`;
 
                     // Copy content to cache
-                    await ExpoFileSystem.copyAsync({ from: finalUrl, to: dest });
+                    await FileSystem.copyAsync({ from: finalUrl, to: dest });
                     finalUrl = dest; // Use the new file:// URI
                     console.log("Copied content URI to cache:", finalUrl);
                 } catch (err) {
@@ -557,10 +543,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             await TrackPlayer.play();
             setIsPlaying(true);
 
-            try {
-                await initEqualizer(0);
-                setEqualizerGains(eqGains);
-            } catch { }
+            if (await initEqualizer(0)) {
+                await setEqualizerGains(eqGains);
+            }
 
             setTimeout(() => savePlaybackState({ ...songData, name: cleanSongName }, 0, queueToUse, startIndex), 1000);
 
@@ -576,7 +561,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             setIsLoading(false);
             playSongLockRef.current = false;
         }
-    }, [videoPlayer, songQuality, stop, savePlaybackState, queue, currentIndex, eqGains, openVideoPlayer, getSongUrl, updateMusicWidget, setQueueState]);
+    }, [songQuality, stop, savePlaybackState, queue, currentIndex, eqGains, openVideoPlayer, getSongUrl, updateMusicWidget, setQueueState]);
 
     const nextSong = useCallback(async () => {
         try {
@@ -773,15 +758,9 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             } else {
                 await TrackPlayer.play();
             }
-        } else {
-            if ((videoPlayer as any).playing) {
-                videoPlayer.pause();
-            } else {
-                videoPlayer.play();
-            }
         }
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }, [currentPlayerType, videoPlayer]);
+    }, [currentPlayerType]);
 
     const setQueue = useCallback((songs: ApiSong[], startIndex: number = 0) => {
         setQueueState(songs);

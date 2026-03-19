@@ -1,5 +1,5 @@
 import { CURRENT_VERSION_CODE } from "@/constants/AppVersion";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as IntentLauncher from "expo-intent-launcher";
 import * as Sharing from "expo-sharing";
 import { Alert, Platform } from "react-native";

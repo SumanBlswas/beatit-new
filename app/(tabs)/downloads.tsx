@@ -11,7 +11,7 @@ import {
 import { useNetworkStatus } from "@/services/networkService";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
 import * as MediaLibrary from "expo-media-library";
 import { useFocusEffect, useRouter } from "expo-router";

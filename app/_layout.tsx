@@ -17,9 +17,7 @@ import * as Notifications from "expo-notifications";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TrackPlayer from 'react-native-track-player';
 
-// Register the playback service
-// This must be done outside of any component
-TrackPlayer.registerPlaybackService(() => require('@/services/playbackService').default);
+// TrackPlayer registration is handled by app.json and the expo-video plugin configuration
 
 
 // --- Auth imports ---
@@ -53,29 +51,7 @@ async function requestNotificationPermissions() {
   return true;
 }
 
-async function requestFilePermissions() {
-  if (Platform.OS !== "android") return true;
 
-  try {
-    const { status } = await MediaLibrary.requestPermissionsAsync();
-
-    if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Storage access is needed to download updates. Please enable it.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Open Settings", onPress: () => Linking.openSettings() },
-        ]
-      );
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.warn("Error requesting file permissions:", e);
-    return false;
-  }
-}
 
 
 
@@ -262,8 +238,7 @@ export default function RootLayout() {
       try {
         // Request notification permissions
         await requestNotificationPermissions();
-        // Request file permissions for updates
-        await requestFilePermissions();
+
         console.log("App permissions configured.");
       } catch (e) {
         console.error("Initialization error:", e);

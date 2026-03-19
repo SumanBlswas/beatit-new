@@ -1,0 +1,116 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+  <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"/>
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+  <uses-permission android:name="android.permission.NFC"/>
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+  <uses-permission android:name="android.permission.VIBRATE"/>
+  <uses-permission android:name="android.permission.WAKE_LOCK"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <uses-feature android:name="android.hardware.nfc" android:required="false"/>
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.VIEW"/>
+      <category android:name="android.intent.category.BROWSABLE"/>
+      <data android:scheme="https"/>
+    </intent>
+  </queries>
+  <queries>
+    <package android:name="com.google.android.googlequicksearchbox"/>
+    <intent>
+      <action android:name="android.speech.RecognitionService"/>
+    </intent>
+  </queries>
+  <application android:name=".MainApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:allowBackup="true" android:theme="@style/AppTheme" android:supportsRtl="true" android:requestLegacyExternalStorage="true">
+    <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
+    <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
+
+    <activity android:name=".MainActivity" android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|uiMode" android:launchMode="singleTask" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.App.SplashScreen" android:exported="true" android:supportsPictureInPicture="true" android:screenOrientation="portrait">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.LAUNCHER"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="rear"/>
+        <data android:scheme="exp+rear"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="content" android:mimeType="audio/*"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="file" android:mimeType="audio/*"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="content" android:mimeType="video/*"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="file" android:mimeType="video/*"/>
+      </intent-filter>
+      <!-- Additional intent filters for specific file extensions -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="file"/>
+        <data android:scheme="content"/>
+        <data android:host="*"/>
+        <data android:pathPattern=".*\\.mp3"/>
+        <data android:pathPattern=".*\\.m4a"/>
+        <data android:pathPattern=".*\\.flac"/>
+        <data android:pathPattern=".*\\.wav"/>
+        <data android:pathPattern=".*\\.aac"/>
+        <data android:pathPattern=".*\\.ogg"/>
+        <data android:pathPattern=".*\\.mp4"/>
+        <data android:pathPattern=".*\\.mkv"/>
+        <data android:pathPattern=".*\\.avi"/>
+        <data android:pathPattern=".*\\.webm"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="beatit" android:host="nfc" android:pathPrefix="/pair"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.nfc.action.NDEF_DISCOVERED"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <data android:scheme="beatit" android:host="nfc"/>
+      </intent-filter>
+      <intent-filter>
+        <action android:name="android.nfc.action.NDEF_DISCOVERED"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <data android:mimeType="application/beatit.nfc"/>
+      </intent-filter>
+    </activity>
+    <receiver android:name="com.anonymous.widget.MusicPlayerWidgetProvider" android:exported="true">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+        <action android:name="com.anonymous.beatit.PLAY_PAUSE"/>
+        <action android:name="com.anonymous.beatit.NEXT"/>
+        <action android:name="com.anonymous.beatit.PREV"/>
+        <action android:name="com.anonymous.beatit.UPDATE_WIDGET"/>
+      </intent-filter>
+      <meta-data android:name="android.appwidget.provider" android:resource="@xml/music_player_widget_info"/>
+    </receiver>
+  </application>
+</manifest>

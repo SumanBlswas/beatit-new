@@ -709,10 +709,125 @@ export default function VideoPlayer({
   useEffect(() => {
     if (!visible || !player) return;
 
-    // Track processing removed to prevent crash
-    console.log("Track processing disabled intentionally.");
-    setAvailableAudioTracks([]);
-    setAvailableSubtitles([]);
+    const processTracks = () => {
+      try {
+        // Ensure player is valid and has track capabilities
+        if (!player) return;
+
+        let audioTracks: any[] = [];
+        let subtitleTracks: any[] = [];
+
+        const audioTrackSource = player.availableAudioTracks;
+        if (audioTrackSource && audioTrackSource.length > 0) {
+          // Store original tracks
+          originalAudioTracks.current = Array.from(audioTrackSource);
+
+          audioTracks = audioTrackSource.map((track: any, index: number) => ({
+            ...track,
+            index: index,
+            label:
+              track.title ||
+              track.label ||
+              track.language ||
+              `Audio ${index + 1}`,
+            language: track.language || track.lang,
+          }));
+          console.log("Real audio tracks detected:", audioTracks.length);
+        } else {
+          originalAudioTracks.current = [];
+        }
+
+        const subtitleSource = player.availableSubtitleTracks;
+        if (subtitleSource && subtitleSource.length > 0) {
+          // Store original tracks
+          originalSubtitleTracks.current = Array.from(subtitleSource);
+
+          subtitleTracks = subtitleSource.map((track: any, index: number) => ({
+            ...track,
+            index: index,
+            label:
+              track.title ||
+              track.label ||
+              track.language ||
+              `Subtitle ${index + 1}`,
+            language: track.language || track.lang,
+          }));
+          console.log("Real subtitle tracks detected:", subtitleTracks.length);
+        } else {
+          originalSubtitleTracks.current = [];
+        }
+
+        setAvailableAudioTracks(audioTracks);
+        setAvailableSubtitles(subtitleTracks);
+
+        // --- Find matching audio track by comparing language ---
+        const currentAudio = player.audioTrack;
+
+        // Auto-enable subtitle track that matches current audio language
+        if (currentAudio && subtitleTracks.length > 0) {
+          const matchingSubtitle = subtitleTracks.find(
+            (t) => t.language === currentAudio.language
+          );
+          if (matchingSubtitle) {
+            console.log(`Auto-enabling subtitle for audio language: ${currentAudio.language}`);
+            player.subtitleTrack = originalSubtitleTracks.current[matchingSubtitle.index];
+            setSubtitlesEnabled(true);
+            setSelectedSubtitle(matchingSubtitle.index);
+          }
+        }
+
+        if (currentAudio && audioTracks.length > 0) {
+          const matchingTrack = audioTracks.find(
+            (t) => t.language === currentAudio.language
+          );
+          if (matchingTrack) {
+            setSelectedAudioTrack(matchingTrack.index);
+          } else {
+            setSelectedAudioTrack(audioTracks[0].index);
+          }
+        } else if (audioTracks.length > 0) {
+          setSelectedAudioTrack(audioTracks[0].index);
+        }
+
+        // --- Find matching subtitle track by comparing language ---
+        const currentSubtitle = player.subtitleTrack;
+        if (currentSubtitle && subtitleTracks.length > 0) {
+          const matchingTrack = subtitleTracks.find(
+            (t) => t.language === currentSubtitle.language
+          );
+          if (matchingTrack) {
+            setSelectedSubtitle(matchingTrack.index);
+            setSubtitlesEnabled(true);
+          } else {
+            setSelectedSubtitle(-1);
+            setSubtitlesEnabled(false);
+          }
+        } else {
+          setSelectedSubtitle(-1);
+          setSubtitlesEnabled(false);
+        }
+      } catch (error) {
+        console.error("Error processing tracks:", error);
+        setAvailableAudioTracks([]);
+        setAvailableSubtitles([]);
+      }
+    };
+
+    // Process tracks immediately
+    processTracks();
+
+    // Re-process on source change if available (using status change as proxy)
+    const subscription = player.addListener('statusChange', () => {
+      // Optimization: debounce or check if tracks actually changed if API supported it
+      // For now, safe to re-read
+      if (player.status === 'readyToPlay') {
+        processTracks();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
 
   }, [visible, player, liveSubtitlesEnabled, isPlaying, startLiveSubtitles]);
 

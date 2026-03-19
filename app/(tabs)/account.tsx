@@ -14,7 +14,7 @@ import {
 } from "@/utils/storage";
 import { FontAwesome } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";

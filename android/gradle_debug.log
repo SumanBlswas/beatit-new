@@ -1,0 +1,246 @@
+2026-03-20T01:50:31.522+0530 [INFO] [org.gradle.internal.nativeintegration.services.NativeServices] Initialized native services in: C:\Users\suman\.gradle\native
+2026-03-20T01:50:31.570+0530 [INFO] [org.gradle.internal.nativeintegration.services.NativeServices] Initialized jansi services in: C:\Users\suman\.gradle\native
+2026-03-20T01:50:31.581+0530 [LIFECYCLE] [org.gradle.launcher.cli.DebugLoggerWarningAction] 
+#############################################################################
+   WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+   Debug level logging will leak security sensitive information!
+
+   For more details, please refer to https://docs.gradle.org/8.10.2/userguide/logging.html#sec:debug_security in the Gradle documentation.
+#############################################################################
+
+2026-03-20T01:50:31.609+0530 [DEBUG] [org.gradle.internal.nativeintegration.services.NativeServices] Native-platform posix files integration is not available. Continuing with fallback.
+2026-03-20T01:50:31.641+0530 [INFO] [org.gradle.internal.jvm.inspection.DefaultJvmMetadataDetector] Received JVM installation metadata from 'C:\Program Files\Android\Android Studio\jbr': {JAVA_HOME=C:\Program Files\Android\Android Studio\jbr, JAVA_VERSION=21.0.6, JAVA_VENDOR=JetBrains s.r.o., RUNTIME_NAME=OpenJDK Runtime Environment, RUNTIME_VERSION=21.0.6+-13391695-b895.109, VM_NAME=OpenJDK 64-Bit Server VM, VM_VERSION=21.0.6+-13391695-b895.109, VM_VENDOR=JetBrains s.r.o., OS_ARCH=amd64}
+2026-03-20T01:50:31.764+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClient] Executing build 039142d7-9d05-42f2-9d0a-b5e162d1e7a3 in daemon client {pid=17232}
+2026-03-20T01:50:31.767+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IP)-WFP Native MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IP)-QoS Packet Scheduler-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IPv6)-WFP Native MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IPv6)-QoS Packet Scheduler-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (Network Monitor)-WFP Native MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (Network Monitor)-QoS Packet Scheduler-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Kernel Debug Network Adapter
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface ASIX AX88772B USB2.0 to Fast Ethernet Adapter
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Bluetooth Device (Personal Area Network)
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /fe80:0:0:0:285a:60d1:5ab6:44b4%ethernet_32770
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IP)
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IPv6)
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (Network Monitor)
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Remote NDIS Compatible Device
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (PPPOE)
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface RAS Async Adapter
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Software Loopback Interface 1
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? true
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding loopback address /0:0:0:0:0:0:0:1
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding loopback address /127.0.0.1
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Intel(R) Wi-Fi 6 AX201 160MHz-WFP Native MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.768+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Intel(R) Wi-Fi 6 AX201 160MHz-Virtual WiFi Filter Driver-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Intel(R) Wi-Fi 6 AX201 160MHz-Native WiFi Filter Driver-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Intel(R) Wi-Fi 6 AX201 160MHz-QoS Packet Scheduler-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Intel(R) Wi-Fi 6 AX201 160MHz-WFP 802.3 MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter-WFP Native MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter #3-WFP Native MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter #3-Native WiFi Filter Driver-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter #3-QoS Packet Scheduler-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter #3-WFP 802.3 MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter-Native WiFi Filter Driver-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter-QoS Packet Scheduler-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter-WFP 802.3 MAC Layer LightWeight Filter-0000
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Intel(R) Wi-Fi 6 AX201 160MHz
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /fe80:0:0:0:fe7c:3f87:e87a:b7%wireless_32768
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /2401:4900:1c31:8a72:d809:139c:a04d:423a
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /2401:4900:1c31:8a72:c867:f4d2:8e6f:9b23
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /192.168.1.6
+2026-03-20T01:50:31.769+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /fe80:0:0:0:e776:1af9:3a00:1a4d%wireless_32769
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter #2
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Wi-Fi Direct Virtual Adapter #3
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding remote address /fe80:0:0:0:390a:1f30:2a5d:7bbf%wireless_32771
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft Teredo Tunneling Adapter
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft IP-HTTPS Platform Adapter
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface Microsoft 6to4 Adapter
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (SSTP)
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (IKEv2)
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (L2TP)
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Adding IP addresses for network interface WAN Miniport (PPTP)
+2026-03-20T01:50:31.770+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.InetAddresses] Is this a loopback interface? false
+2026-03-20T01:50:31.783+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire shared lock on daemon addresses registry.
+2026-03-20T01:50:31.800+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on daemon addresses registry.
+2026-03-20T01:50:31.805+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on daemon addresses registry.
+2026-03-20T01:50:31.810+0530 [INFO] [org.gradle.launcher.daemon.client.DefaultDaemonConnector] Found daemon DaemonInfo{pid=1772, address=[2649e4a1-865b-4445-bb87-d4ba94d14ebb port:64024, addresses:[/127.0.0.1]], state=Idle, lastBusy=1773951585166, context=DefaultDaemonContext[uid=96e05d40-751d-429e-b958-a74ed5e89f28,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\suman\.gradle\daemon,pid=1772,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=IN,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+At least one daemon option is different.
+Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Android\Android Studio\jbr (no JDK specified, using current Java home), daemonOpts=[--add-opens=java.base/java.util=ALL-UNNAMED, --add-opens=java.base/java.lang=ALL-UNNAMED, --add-opens=java.base/java.lang.invoke=ALL-UNNAMED, --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED, --add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED, --add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED, --add-opens=java.base/java.nio.charset=ALL-UNNAMED, --add-opens=java.base/java.net=ALL-UNNAMED, --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED, -XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=IN, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=96e05d40-751d-429e-b958-a74ed5e89f28,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\suman\.gradle\daemon,pid=1772,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=512m,--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-Xmx2048m,-Dfile.encoding=UTF-8,-Duser.country=IN,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+2026-03-20T01:50:31.816+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.TcpOutgoingConnector] Attempting to connect to [172019e7-d9e1-4f9c-9d58-ba1771e9ac83 port:64048, addresses:[/127.0.0.1]].
+2026-03-20T01:50:31.816+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.TcpOutgoingConnector] Trying to connect to address /127.0.0.1.
+2026-03-20T01:50:31.824+0530 [DEBUG] [org.gradle.internal.remote.internal.inet.TcpOutgoingConnector] Connected to address /127.0.0.1:64048.
+2026-03-20T01:50:31.870+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClient] Connected to daemon DaemonInfo{pid=1092, address=[172019e7-d9e1-4f9c-9d58-ba1771e9ac83 port:64048, addresses:[/127.0.0.1]], state=Idle, lastBusy=1773951617771, context=DefaultDaemonContext[uid=75193656-11bb-49b0-a46d-8fe8d86ee4e3,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\suman\.gradle\daemon,pid=1092,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=IN,-Duser.language=en,-Duser.variant]}. Dispatching request Build{id=039142d7-9d05-42f2-9d0a-b5e162d1e7a3, currentDir=C:\Users\suman\Downloads\beatit-main\1st_version\android}.
+2026-03-20T01:50:31.870+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClientConnection] thread 1: dispatching class org.gradle.launcher.daemon.protocol.Build
+2026-03-20T01:50:31.887+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClient] Received result org.gradle.launcher.daemon.protocol.BuildStarted@2f4854d6 from daemon DaemonInfo{pid=1092, address=[172019e7-d9e1-4f9c-9d58-ba1771e9ac83 port:64048, addresses:[/127.0.0.1]], state=Idle, lastBusy=1773951617771, context=DefaultDaemonContext[uid=75193656-11bb-49b0-a46d-8fe8d86ee4e3,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\suman\.gradle\daemon,pid=1092,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=IN,-Duser.language=en,-Duser.variant]} (build should be starting).
+2026-03-20T01:50:31.895+0530 [INFO] [org.gradle.launcher.daemon.server.exec.LogToClient] The client will now receive all logging from the daemon (pid: 1092). The daemon log file: C:\Users\suman\.gradle\daemon\8.10.2\daemon-1092.out.log
+2026-03-20T01:50:31.896+0530 [INFO] [org.gradle.launcher.daemon.server.exec.LogAndCheckHealth] Starting 2nd build in daemon [uptime: 14.308 secs, performance: 99%, GC rate: 0.00/s, heap usage: 2% of 512 MiB, non-heap usage: 12% of 384 MiB]
+2026-03-20T01:50:31.897+0530 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] The daemon has started executing the build.
+2026-03-20T01:50:31.897+0530 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] Executing build with daemon context: DefaultDaemonContext[uid=75193656-11bb-49b0-a46d-8fe8d86ee4e3,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\suman\.gradle\daemon,pid=1092,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=IN,-Duser.language=en,-Duser.variant]
+2026-03-20T01:50:31.899+0530 [INFO] [org.gradle.internal.work.DefaultWorkerLeaseService] Using 8 worker leases.
+2026-03-20T01:50:31.900+0530 [DEBUG] [org.gradle.internal.resources.AbstractTrackedResourceLock] Daemon worker: acquired lock on worker lease
+2026-03-20T01:50:31.901+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Run build' started
+2026-03-20T01:50:31.909+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for fileHashes, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes\fileHashes.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@78212268
+2026-03-20T01:50:31.910+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Acquiring file lock for file hash cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes)
+2026-03-20T01:50:31.911+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on file hash cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes).
+2026-03-20T01:50:31.912+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on file hash cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes).
+2026-03-20T01:50:31.914+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for outputFiles, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\buildOutputCleanup\outputFiles.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@3cfa5352
+2026-03-20T01:50:31.914+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Acquiring file lock for Build Output Cleanup Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\buildOutputCleanup)
+2026-03-20T01:50:31.916+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on Build Output Cleanup Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\buildOutputCleanup).
+2026-03-20T01:50:31.916+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on Build Output Cleanup Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\buildOutputCleanup).
+2026-03-20T01:50:31.917+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for resourceHashesCache, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes\resourceHashesCache.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@78212268
+2026-03-20T01:50:31.922+0530 [INFO] [org.gradle.internal.watch.registry.impl.WatchableHierarchies] Now considering [C:\Users\suman\Downloads\beatit-main\1st_version\android] as hierarchies to watch
+2026-03-20T01:50:31.928+0530 [INFO] [org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner] Watching the file system is configured to be enabled if available
+2026-03-20T01:50:31.928+0530 [DEBUG] [org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner] Watching the file system computed to be enabled if available
+2026-03-20T01:50:31.929+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Build started for file system watching' started
+2026-03-20T01:50:31.929+0530 [DEBUG] [org.gradle.internal.watch.vfs.impl.DefaultWatchableFileSystemDetector] Detected NTFS: C:\ from \Device\HarddiskVolume3 (remote: false)
+2026-03-20T01:50:31.929+0530 [DEBUG] [org.gradle.internal.watch.vfs.impl.DefaultWatchableFileSystemDetector] Detected NTFS: S:\ from \Device\HarddiskVolume4 (remote: false)
+2026-03-20T01:50:31.930+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Build started for file system watching'
+2026-03-20T01:50:31.930+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Build started for file system watching' completed
+2026-03-20T01:50:31.930+0530 [INFO] [org.gradle.tooling.internal.provider.FileSystemWatchingBuildActionRunner] File system watching is active
+2026-03-20T01:50:31.931+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Load build' started
+2026-03-20T01:50:31.932+0530 [DEBUG] [org.gradle.initialization.properties.DefaultProjectPropertiesLoader] Found env project properties: []
+2026-03-20T01:50:31.933+0530 [DEBUG] [org.gradle.initialization.properties.DefaultProjectPropertiesLoader] Found system project properties: []
+2026-03-20T01:50:31.934+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Evaluate settings' started
+2026-03-20T01:50:31.936+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for workingDirs, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\vcsMetadata\workingDirs.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@324b8a5d
+2026-03-20T01:50:31.939+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for md5-checksums, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums\md5-checksums.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@5a737009
+2026-03-20T01:50:31.939+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Acquiring file lock for checksums cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums)
+2026-03-20T01:50:31.942+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on checksums cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums).
+2026-03-20T01:50:31.943+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on checksums cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums).
+2026-03-20T01:50:31.943+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for sha1-checksums, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums\sha1-checksums.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@5a737009
+2026-03-20T01:50:31.943+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for sha256-checksums, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums\sha256-checksums.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@5a737009
+2026-03-20T01:50:31.943+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for sha512-checksums, path C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums\sha512-checksums.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@5a737009
+2026-03-20T01:50:31.945+0530 [DEBUG] [org.gradle.api.internal.artifacts.mvnsettings.DefaultLocalMavenRepositoryLocator] No local repository in Settings file defined. Using default path: C:\Users\suman\.m2\repository
+2026-03-20T01:50:31.946+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for md-rule, path C:\Users\suman\.gradle\caches\8.10.2\md-rule\md-rule.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@76586c94
+2026-03-20T01:50:31.947+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Acquiring file lock for cache directory md-rule (C:\Users\suman\.gradle\caches\8.10.2\md-rule)
+2026-03-20T01:50:31.948+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on cache directory md-rule (C:\Users\suman\.gradle\caches\8.10.2\md-rule).
+2026-03-20T01:50:31.949+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on cache directory md-rule (C:\Users\suman\.gradle\caches\8.10.2\md-rule).
+2026-03-20T01:50:31.950+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Creating new cache for md-supplier, path C:\Users\suman\.gradle\caches\8.10.2\md-supplier\md-supplier.bin, access org.gradle.cache.internal.DefaultCacheCoordinator@4acb5e89
+2026-03-20T01:50:31.951+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Acquiring file lock for cache directory md-supplier (C:\Users\suman\.gradle\caches\8.10.2\md-supplier)
+2026-03-20T01:50:31.952+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Waiting to acquire exclusive lock on cache directory md-supplier (C:\Users\suman\.gradle\caches\8.10.2\md-supplier).
+2026-03-20T01:50:31.952+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Lock acquired on cache directory md-supplier (C:\Users\suman\.gradle\caches\8.10.2\md-supplier).
+2026-03-20T01:50:31.952+0530 [DEBUG] [org.gradle.internal.locking.LockFileReaderWriter] Lockfiles root: C:\Users\suman\Downloads\beatit-main\1st_version\android\gradle\dependency-locks
+2026-03-20T01:50:31.954+0530 [INFO] [org.gradle.internal.buildevents.BuildLogger] Starting Build
+2026-03-20T01:50:31.954+0530 [DEBUG] [org.gradle.internal.buildevents.BuildLogger] Gradle user home: C:\Users\suman\.gradle
+2026-03-20T01:50:31.954+0530 [DEBUG] [org.gradle.internal.buildevents.BuildLogger] Current dir: C:\Users\suman\Downloads\beatit-main\1st_version\android
+2026-03-20T01:50:31.954+0530 [DEBUG] [org.gradle.internal.buildevents.BuildLogger] Settings file: null
+2026-03-20T01:50:31.954+0530 [DEBUG] [org.gradle.internal.buildevents.BuildLogger] Build file: null
+2026-03-20T01:50:31.957+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Apply settings file 'settings.gradle' to settings 'android'' started
+2026-03-20T01:50:31.961+0530 [INFO] [org.gradle.process.internal.DefaultExecHandle] Starting process 'command 'node''. Working directory: C:\Users\suman\Downloads\beatit-main\1st_version\android Command: node --print require.resolve('@react-native/gradle-plugin/package.json', { paths: [new File(rootDir, '..').absolutePath.replace("\\", "/")] })
+2026-03-20T01:50:31.961+0530 [DEBUG] [org.gradle.process.internal.DefaultExecHandle] Changing state to: STARTING
+2026-03-20T01:50:31.961+0530 [DEBUG] [org.gradle.process.internal.DefaultExecHandle] Waiting until process started: command 'node'.
+2026-03-20T01:50:31.967+0530 [DEBUG] [org.gradle.process.internal.DefaultExecHandle] Changing state to: STARTED
+2026-03-20T01:50:31.967+0530 [DEBUG] [org.gradle.process.internal.ExecHandleRunner] waiting until streams are handled...
+2026-03-20T01:50:31.967+0530 [INFO] [org.gradle.process.internal.DefaultExecHandle] Successfully started process 'command 'node''
+2026-03-20T01:50:32.034+0530 [DEBUG] [org.gradle.process.internal.DefaultExecHandle] Changing state to: FAILED
+2026-03-20T01:50:32.034+0530 [DEBUG] [org.gradle.process.internal.DefaultExecHandle] Process 'command 'node'' finished with exit value 1 (state: FAILED)
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Apply settings file 'settings.gradle' to settings 'android''
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Apply settings file 'settings.gradle' to settings 'android'' completed
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Evaluate settings'
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Evaluate settings' completed
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Load build'
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Load build' completed
+2026-03-20T01:50:32.035+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Finish root build tree' started
+2026-03-20T01:50:32.037+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Finish root build tree'
+2026-03-20T01:50:32.037+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Finish root build tree' completed
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] FAILURE: Build failed with an exception.
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] * Where:
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] Settings file 'C:\Users\suman\Downloads\beatit-main\1st_version\android\settings.gradle' line: 3
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] * What went wrong:
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] A problem occurred evaluating settings 'android'.
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Process 'command 'node'' finished with non-zero exit value 1
+2026-03-20T01:50:32.037+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] 
+2026-03-20T01:50:32.038+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] * Try:
+2026-03-20T01:50:32.038+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Run with --stacktrace option to get the stack trace.
+2026-03-20T01:50:32.038+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Run with --scan to get full insights.
+2026-03-20T01:50:32.038+0530 [ERROR] [org.gradle.internal.buildevents.BuildExceptionReporter] > Get more help at https://help.gradle.org.
+2026-03-20T01:50:32.038+0530 [ERROR] [org.gradle.internal.buildevents.BuildResultLogger] 
+2026-03-20T01:50:32.038+0530 [ERROR] [org.gradle.internal.buildevents.BuildResultLogger] BUILD FAILED in 990ms
+2026-03-20T01:50:32.038+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Build finished for file system watching' started
+2026-03-20T01:50:32.038+0530 [INFO] [org.gradle.internal.watch.registry.impl.HierarchicalFileWatcherUpdater] Watched directory hierarchies: []
+2026-03-20T01:50:32.038+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Build finished for file system watching'
+2026-03-20T01:50:32.038+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Build finished for file system watching' completed
+2026-03-20T01:50:32.040+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Releasing file lock for cache directory md-supplier (C:\Users\suman\.gradle\caches\8.10.2\md-supplier)
+2026-03-20T01:50:32.040+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on cache directory md-supplier (C:\Users\suman\.gradle\caches\8.10.2\md-supplier).
+2026-03-20T01:50:32.041+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Releasing file lock for Build Output Cleanup Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\buildOutputCleanup)
+2026-03-20T01:50:32.041+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on Build Output Cleanup Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\buildOutputCleanup).
+2026-03-20T01:50:32.042+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Releasing file lock for cache directory md-rule (C:\Users\suman\.gradle\caches\8.10.2\md-rule)
+2026-03-20T01:50:32.042+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on cache directory md-rule (C:\Users\suman\.gradle\caches\8.10.2\md-rule).
+2026-03-20T01:50:32.043+0530 [DEBUG] [org.gradle.api.internal.artifacts.ivyservice.resolveengine.store.ResolutionResultsStoreFactory] Deleted 0 resolution results binary files in 0.0 secs
+2026-03-20T01:50:32.043+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Run build'
+2026-03-20T01:50:32.043+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Run build' completed
+2026-03-20T01:50:32.043+0530 [DEBUG] [org.gradle.internal.resources.AbstractTrackedResourceLock] Daemon worker: released lock on worker lease
+2026-03-20T01:50:32.046+0530 [DEBUG] [org.gradle.deployment.internal.DefaultDeploymentRegistry] Stopping 0 deployment handles
+2026-03-20T01:50:32.046+0530 [DEBUG] [org.gradle.deployment.internal.DefaultDeploymentRegistry] Stopped deployment handles
+2026-03-20T01:50:32.046+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Releasing file lock for file hash cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes)
+2026-03-20T01:50:32.047+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on file hash cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\fileHashes).
+2026-03-20T01:50:32.047+0530 [DEBUG] [org.gradle.cache.internal.LockOnDemandCrossProcessCacheAccess] Releasing file lock for checksums cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums)
+2026-03-20T01:50:32.047+0530 [DEBUG] [org.gradle.cache.internal.DefaultFileLockManager] Releasing lock on checksums cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\checksums).
+2026-03-20T01:50:32.048+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCleanupExecutor] VCS Checkout Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\vcs-1) has last been fully cleaned up 0 hours ago
+2026-03-20T01:50:32.048+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCleanupExecutor] Skipping cleanup for VCS Checkout Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\vcs-1) as it is not yet due
+2026-03-20T01:50:32.048+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Cache VCS Checkout Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\vcs-1) was closed 0 times.
+2026-03-20T01:50:32.048+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Cache VCS metadata (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\vcsMetadata) was closed 0 times.
+2026-03-20T01:50:32.048+0530 [DEBUG] [org.gradle.cache.internal.DefaultCacheCoordinator] Cache Compressed Files Expansion Cache (C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle\8.10.2\expanded) was closed 0 times.
+2026-03-20T01:50:32.048+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Deleting unused version-specific caches in C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle' started
+2026-03-20T01:50:32.049+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Completing Build operation 'Deleting unused version-specific caches in C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle'
+2026-03-20T01:50:32.049+0530 [DEBUG] [org.gradle.internal.operations.DefaultBuildOperationRunner] Build operation 'Deleting unused version-specific caches in C:\Users\suman\Downloads\beatit-main\1st_version\android\.gradle' completed
+2026-03-20T01:50:32.063+0530 [DEBUG] [org.gradle.launcher.daemon.server.exec.ExecuteBuild] The daemon has finished executing the build.
+2026-03-20T01:50:32.119+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClientConnection] thread 1: dispatching class org.gradle.launcher.daemon.protocol.CloseInput
+2026-03-20T01:50:32.120+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClient] Received result Success[value=org.gradle.launcher.exec.BuildActionResult@486be205] from daemon DaemonInfo{pid=1092, address=[172019e7-d9e1-4f9c-9d58-ba1771e9ac83 port:64048, addresses:[/127.0.0.1]], state=Idle, lastBusy=1773951617771, context=DefaultDaemonContext[uid=75193656-11bb-49b0-a46d-8fe8d86ee4e3,javaHome=C:\Program Files\Android\Android Studio\jbr,javaVersion=21,javaVendor=JetBrains s.r.o.,daemonRegistryDir=C:\Users\suman\.gradle\daemon,pid=1092,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=--add-opens=java.base/java.util=ALL-UNNAMED,--add-opens=java.base/java.lang=ALL-UNNAMED,--add-opens=java.base/java.lang.invoke=ALL-UNNAMED,--add-opens=java.prefs/java.util.prefs=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED,--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED,--add-opens=java.base/java.nio.charset=ALL-UNNAMED,--add-opens=java.base/java.net=ALL-UNNAMED,--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED,-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=IN,-Duser.language=en,-Duser.variant]} (build should be done).
+2026-03-20T01:50:32.120+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClientConnection] thread 1: dispatching class org.gradle.launcher.daemon.protocol.Finished
+2026-03-20T01:50:32.120+0530 [DEBUG] [org.gradle.launcher.daemon.client.DaemonClientConnection] thread 1: connection stop
+2026-03-20T01:50:32.122+0530 [LIFECYCLE] [org.gradle.launcher.cli.DebugLoggerWarningAction] 
+#############################################################################
+   WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING
+
+   Debug level logging will leak security sensitive information!
+
+   For more details, please refer to https://docs.gradle.org/8.10.2/userguide/logging.html#sec:debug_security in the Gradle documentation.
+#############################################################################
+

@@ -19,12 +19,12 @@ export const initEqualizer = async (sessionId?: number) => {
   return false;
 };
 
-export const setEqualizerGains = (gains: number[]) => {
+export const setEqualizerGains = async (gains: number[]) => {
   if (!isNativeEqualizerAvailable()) return false;
   try {
     if (typeof EqualizerModule.setGains === "function") {
       // Ensure we pass a plain array of numbers
-      EqualizerModule.setGains(gains.map((g) => Number(g)));
+      await EqualizerModule.setGains(gains.map((g) => Number(g)));
       return true;
     }
   } catch (e) {
@@ -33,11 +33,11 @@ export const setEqualizerGains = (gains: number[]) => {
   return false;
 };
 
-export const enableEqualizer = (enabled: boolean) => {
+export const enableEqualizer = async (enabled: boolean) => {
   if (!isNativeEqualizerAvailable()) return false;
   try {
     if (typeof EqualizerModule.setEnabled === "function") {
-      EqualizerModule.setEnabled(!!enabled);
+      await EqualizerModule.setEnabled(!!enabled);
       return true;
     }
   } catch (e) {
@@ -46,11 +46,11 @@ export const enableEqualizer = (enabled: boolean) => {
   return false;
 };
 
-export const releaseEqualizer = () => {
+export const releaseEqualizer = async () => {
   if (!isNativeEqualizerAvailable()) return false;
   try {
     if (typeof EqualizerModule.release === "function") {
-      EqualizerModule.release();
+      await EqualizerModule.release();
       return true;
     }
   } catch (e) {

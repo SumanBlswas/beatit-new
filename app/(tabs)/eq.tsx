@@ -21,6 +21,7 @@ import {
 } from "react-native";
 import Animated, {
   Easing,
+  SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -35,12 +36,18 @@ const TRACK_HEIGHT = 140; // Visible track height
 const SLIDER_RANGE = 12; // -12 to +12 dB
 const THUMB_SIZE = 24; // Thumb diameter
 
-const useAnimatedBandStyle = (sharedValue: Animated.SharedValue<number>) => {
+const useAnimatedBandStyle = (sharedValue: SharedValue<number>) => {
   return useAnimatedStyle(() => {
     const isPositive = sharedValue.value > 0;
     const intensity = Math.abs(sharedValue.value) / SLIDER_RANGE;
+    
+    // Calculate thumb position in the worklet
+    const center = SLIDER_HEIGHT / 2;
+    const pixelsPerDb = TRACK_HEIGHT / 2 / SLIDER_RANGE;
+    const top = center - sharedValue.value * pixelsPerDb - THUMB_SIZE / 2;
 
     return {
+      top: top,
       transform: [{ scale: 1 + intensity * 0.25 }],
       backgroundColor: isPositive
         ? "#00ff88"
@@ -335,15 +342,15 @@ const Equalizer: React.FC = () => {
                     }}
                     onValueChange={(value) => {
                       sharedValues[index].value = value;
+                    }}
+                    onSlidingComplete={(value) => {
+                      slidingRef.current = false;
+                      handleGainChange(index, value);
                       setTempGains((prev) => {
                         const copy = [...prev];
                         copy[index] = value;
                         return copy;
                       });
-                    }}
-                    onSlidingComplete={(value) => {
-                      slidingRef.current = false;
-                      handleGainChange(index, value);
                     }}
                   />
 
@@ -353,7 +360,6 @@ const Equalizer: React.FC = () => {
                     style={[
                       styles.thumb,
                       allAnimatedStyles[index],
-                      { top: getThumbPosition(tempGains[index]) },
                     ]}
                   />
                 </View>

@@ -13,6 +13,7 @@ import android.nfc.NfcAdapter
 import android.os.Build
 import android.os.Bundle
 
+
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -43,6 +44,13 @@ class MainActivity : ReactActivity() {
 
     // Handle NFC intent if app was launched from NFC
     handleNfcIntent(intent)
+
+    // Request high refresh rate (120Hz) if available
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      val params = window.attributes
+      params.preferredRefreshRate = 120f
+      window.attributes = params
+    }
   }
 
   override fun onNewIntent(intent: Intent) {

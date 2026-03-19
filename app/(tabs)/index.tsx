@@ -15,7 +15,7 @@ import {
 } from "@react-native-google-signin/google-signin";
 import { useAudioPlayer } from "expo-audio";
 import { BlurView } from "expo-blur";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwake, deactivateKeepAwake } from "expo-keep-awake";
 import { LinearGradient } from "expo-linear-gradient";

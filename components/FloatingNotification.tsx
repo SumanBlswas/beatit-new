@@ -1,5 +1,5 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Image,
     Platform,
@@ -160,6 +160,7 @@ const FloatingNotification: React.FC<FloatingNotificationProps> = ({
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.3);
   const rotateZ = useSharedValue(0);
+  const [isActuallyVisible, setIsActuallyVisible] = useState(false);
 
   // Morphing and particle effects
   const morphProgress = useSharedValue(0);
@@ -193,6 +194,7 @@ const FloatingNotification: React.FC<FloatingNotificationProps> = ({
 
   useEffect(() => {
     if (isVisible) {
+      setIsActuallyVisible(true);
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
       }
@@ -398,7 +400,10 @@ const FloatingNotification: React.FC<FloatingNotificationProps> = ({
         });
 
         // Ensure onHide is called after animation finishes
-        setTimeout(() => runOnJS(onHide)(), 800);
+        setTimeout(() => {
+          runOnJS(setIsActuallyVisible)(false);
+          runOnJS(onHide)();
+        }, 800);
       }, 3000) as any;
     } else {
       if (hideTimerRef.current) {
@@ -505,7 +510,7 @@ const FloatingNotification: React.FC<FloatingNotificationProps> = ({
     transform: [{ scale: interpolate(energyPulse.value, [0, 1], [1, 1.1]) }],
   }));
 
-  if (!isVisible && opacity.value === 0 && translateY.value <= -100) {
+  if (!isActuallyVisible) {
     return null;
   }
 
@@ -723,7 +728,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     top: "50%",
     left: "50%",
-    shadowColor: "currentColor",
+    shadowColor: "#00ffff",
     shadowOpacity: 0.8,
     shadowRadius: 3,
   },
@@ -834,7 +839,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "currentColor",
+    shadowColor: "#000",
     shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 8,
